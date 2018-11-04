@@ -1,0 +1,49 @@
+
+// expression
+E.
+ans.
+a:=b:=3.
+c:=a+1.
+c.
+c+1<>1.
+c+1=5.
+++1--1.
+1<<2+3%2.
+2&1.
+(1.5+1.5)*-1.1.
+-1+2*3//2.
+2-2-.
+(1+2.
+4!!.
+
+
+// a program
+const x =7,y=85;
+var z,q,r;
+procedure multiply;
+var a,b;
+begin
+    a:=x; ; ; ;b:=y; z:=0;
+    while b>0 do
+    begin 
+        if odd b then z:= z+a;
+        a:=2 * a; b:=b/2;
+    end
+end;
+
+procedure gcd;
+var f,g;
+begin
+    f:=x;
+    g:=y;
+    while f<>g do
+    begin
+        if f<g then g:=g-f;
+        if g<f then f:= f-g;
+    end
+end;
+
+begin
+    call multiply;
+    call gcd; ; ; 
+end.
