@@ -8,7 +8,7 @@ python parse.py  [-i] [-f file]
 -f: compile and run the codes stored in file
 ```
 
-Run 'python parse.py' and enter a REPL state, you can type and run sentences and expressions interactively
+Run `python parse.py` and enter a REPL state, you can type and run sentences and expressions interactively
 
 # Examples
 ##  expression-example
@@ -257,8 +257,8 @@ To simplify this problem, we will emulate this virtual machine and execute instr
 ## register
 This machine has three registers:
 * `b` is the base register that contains the base pointer to locate a varible in the data stack
-* 'reg' is the return register that contains the  return value of latest function call 
-* 'pc' is the pc register that points to the instruction 
+* `reg` is the return register that contains the  return value of latest function call 
+* `pc` is the pc register that points to the instruction 
 ## stack
 There are two stack in this virtual machine. 
 One contains the instructions, visited by register `pc`. It won't change when executing instructions, so we can assume it's readonly
@@ -291,7 +291,7 @@ OPR|n|BACK|  rewind stk.top backward n steps
 OPR|-|operator type| variout operation on value
 
 # Design
-We can generate instruction when analyse grammar. 
+We can generate instruction when analysing grammar. 
 Some keypoints is the control structures' instruction traslation.
 ## if elif else
 ![](src/elseif_ins_stack.jpg)
@@ -299,7 +299,7 @@ Some keypoints is the control structures' instruction traslation.
 ![](src/while_ins_stack.jpg)
 `continue`, `for`  can be translated in the same way.
 ## instruction fillback
-Taking `while` block as an example, Note that we don't know the `JPC` instruction's target addr until we finish analysing the whole block.The Solution is that after we analyse while condition, we generate an instruction with no target address, just take a place. We note down this instruction's address. As soon as we finish analyse the whole  `while` block, the instruction pointer, namely `ip`, pointing to the target address of `JPC`. Then we fill back the `JPC` instruction with the target address along to ip.
+Taking `while` block as an example, Note that we don't know the `JPC` instruction's target addr until we finish analysing the whole block.The Solution is that after we analyse while condition, we generate an instruction with no target address, just take a place. We note down this instruction's address. As soon as we finish analysing the whole  `while` block, the instruction pointer, namely `ip`, pointing to the target address of `JPC`. Then we fill back the `JPC` instruction with the target address along to ip.
 
 ## symbol table
 There are three types of symbols:
@@ -330,8 +330,8 @@ This ensures that we can get the symbol accoding to a name of an identifier.
 ## features
 * bullutin function: print(a,b,c...)
 # To do
-* [] array
-* [] different value pass
-* [] do while, switch
-* [] function pass
-* [] type 
+- [] array
+- [] different value pass
+- [] do while, switch
+- [] function pass
+- [] type 
