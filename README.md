@@ -1,5 +1,8 @@
 # PL0-compiler
 > A compiler for c-like programming language PL0.
+
+See grammar [here](#grammar), PL0 on [wikipedia](https://en.wikipedia.org/wiki/PL/0), and download [this pdf(zh)](编译原理和技术实践2017.pdf) for more details.
+
 # QuickStart
 ```shell
 python parse.py  [-i] [-f file]
