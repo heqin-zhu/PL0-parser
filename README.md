@@ -330,8 +330,8 @@ This ensures that we can get the symbol accoding to a name of an identifier.
 ## features
 * bullutin function: print(a,b,c...)
 # To do
-- [] array
-- [] different value pass
-- [] do while, switch
-- [] function pass
-- [] type 
+- [ ] array
+- [ ] different value pass
+- [ ] do while, switch
+- [ ] function pass
+- [ ] type 
