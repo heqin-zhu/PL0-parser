@@ -179,9 +179,7 @@ sentence = [ ident ":=" sentenceValue {":=" sentenceValue}
 		|  ["return"] sentenceValue
 		|  "print" "(" real_arg_list ")" ]
 
-sentenceValue =  funcall | condition
-conditionValue = funcall|expresssion
-funcall =  ident "(" real_arg_list ")"  
+sentenceValue =   condition
 
 arg_list =  ident { "," ident}
 
@@ -192,8 +190,8 @@ condition = condition_or [ "?" sentenceValue ":" sentenceValue ]
 condition_or  = condition_and { "||" condition_or }
 condition_and = condition_not { condition_not "&&" condition_and}
 condition_not = {"!"} condition_unit 
-condiiton_unit = ["odd"] conditionValue 
-			| conditionValue ("<" | ">" | "<=" | ">=" | "=" | "!=") conditionValue
+condiiton_unit = ["odd"] expression 
+			| expression ("<" | ">" | "<=" | ">=" | "=" | "!=") expression
 
 expression =  level1 { ("<<"| ">>" | "&" | "|") level1 }
 level1  = level2 { ( "+" | "-" ) level2 }
