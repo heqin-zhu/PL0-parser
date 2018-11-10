@@ -11,7 +11,7 @@
 '''
 
 import re
-STR = r'[\'\"](?P<STR>.*?)[\'"]' # not completely correct yet
+STR = r'[\'\"](?P<STR>.*?)[\'\"]' # not completely correct yet
 NAME = r'(?P<NAME>[a-zA-Z_][a-zA-Z_0-9]*)'
 NUM = r'(?P<NUM>\d*\.\d+|\d+)' # note that don't use \d+|\d*\.\d+
 

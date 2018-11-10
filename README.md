@@ -14,15 +14,16 @@ python parse.py  [-i] [-f file]
 Run `python parse.py` and enter a REPL state, you can type and run sentences and expressions interactively
 
 # Examples
+Note that when in REPL, every sentence or expresion or block ends with '.'. But in program codes, only the whole program ends with a dot.
 ##  expression-example
 
 run command `python parser.py` to enter repl.
 
-Therer are some expressions and sentence in file testExpr.txt, now test it.
-`python parser.py -f test/testExpr.txt`
+Therer are some expressions and sentence in file expr.txt, now test it.
+`python parser.py -f test/expr.txt`
 
 ```c
->> File: "testExpr.txt"
+>> File: "expr.txt"
 1
 2     // expression
 3     E.
@@ -36,7 +37,7 @@ result: 4.0,
 result: True,
 >> c+1=5.
 result: True,
->> File: "testExpr.txt"
+>> File: "expr.txt"
 1
 2     while c>0 do
 3     begin
@@ -47,7 +48,7 @@ c is: 3.0
 c is: 2.0
 c is: 1.0
 c is: 0.0
->> File: "testExpr.txt"
+>> File: "expr.txt"
 1
 2     ++1--1.
 result: 2.0,
@@ -62,7 +63,7 @@ result: 2.0,
 >>  2-2-.
 line 1: 2 - 2 - .
                 ^
-[Error]: Expect a varible or const or num, got "."
+[Error]: Expect a value, got "."
 >>    (1+2.
 line 1: ( 1 + 2 .
                 ^
@@ -73,57 +74,41 @@ result: 620448401733239439360000,
 
 ## factorial-example
 run
-`python parser.py  -if test/testFactorial.txt`
+`python parser.py  -f test/fibnaci.txt`
 
 ```c
->> File: "testFactorial.txt"
-1     func f(n)
+>> File: "test/fibnaci.txt"
+1     func fib(n)
 2     begin
-3         if n=1 then return 1;
-4         return n*f(n-1);
-5     end;
+3         if n=1 || n=2 then return 1;
+4         return fib(n-1)+fib(n-2);
+5     end ;
 6
-7     var a;
+7     var n;
 8     begin
-9         a:=f(10);
-10        print('factorial 10 is:',a);
-11    end
-12    .
-0     ('JMP', 0, 21)
-1     ('INT', 0, 4)
-2     ('MOV', 4, 0)
-3     ('LOD', 0, 3)
-4     ('LIT', 0, 1.0)i
-5     ('OPR', 2, 'EQ')
-6     ('JPC', 0, 10)
-7     ('LIT', 0, 1.0)
-8     ('OPR', 0, 'POP')
-9     ('JMP', 0, 20)
-10    ('LOD', 0, 3)
-11    ('LOD', 0, 3)
-12    ('LIT', 0, 1.0)
-13    ('OPR', 2, 'SUB')
-14    ('CAL', 1, 1)
-15    ('OPR', 1, 'BACK')
-16    ('OPR', 0, 'PUSH')
-17    ('OPR', 2, 'MUL')
-18    ('OPR', 0, 'POP')
-19    ('JMP', 0, 20)
-20    ('OPR', 0, 'RET')
-21    ('INT', 0, 4)
-22    ('LIT', 0, 10.0)
-23    ('CAL', 0, 1)
-24    ('OPR', 1, 'BACK')
-25    ('OPR', 0, 'PUSH')
-26    ('OPR', 0, 'POP')
-27    ('OPR', 0, 'PUSH')
-28    ('STO', 0, 3)
-29    ('LIT', 0.0, 'factorial 10 is:')
-30    ('LOD', 0, 3)
-31    ('PRT', 0, 2)
-32    ('OPR', 0, 'RET')
-factorial 10 is: 3628800.0
-result:  3628800.0
+9         n :=1;
+10        while n<15 do
+11        begin
+12            print('The ',n,'th fib item is:',fib(n));
+13            n :=n+1;
+14        end;
+15
+16    end
+17    .
+The  1.0 th fib item is: 1.0
+The  2.0 th fib item is: 1.0
+The  3.0 th fib item is: 2.0
+The  4.0 th fib item is: 3.0
+The  5.0 th fib item is: 5.0
+The  6.0 th fib item is: 8.0
+The  7.0 th fib item is: 13.0
+The  8.0 th fib item is: 21.0
+The  9.0 th fib item is: 34.0
+The  10.0 th fib item is: 55.0
+The  11.0 th fib item is: 89.0
+The  12.0 th fib item is: 144.0
+The  13.0 th fib item is: 233.0
+The  14.0 th fib item is: 377.0
 ```
 # Description
 ## ident type
@@ -253,7 +238,7 @@ match_level4():
 ```
 
 # Instruction generation
-We designed several instruction that this compiler generates for the target machine. 
+We designed several instructions that can be generated for the target machine. 
 To simplify this problem, we will emulate this virtual machine and execute instructions in python.
 ## register
 This machine has three registers:
@@ -263,7 +248,7 @@ This machine has three registers:
 ## stack
 There are two stack in this virtual machine. 
 One contains the instructions, visited by register `pc`. It won't change when executing instructions, so we can assume it's readonly
-The other is data stack. It dynamiclly changes when running the progrram.
+The other is data stack. It dynamiclly changes when running the program.
 
 For each level, the first is the base address of this level. The second place is the static chain to visit the upper level's varibles. The third place contains the return address of the upper level.
 And the other places in one level contains local varibles and real time data for calculation.
@@ -299,6 +284,37 @@ Some keypoints is the control structures' instruction traslation.
 ## while/break
 ![](src/while_ins_stack.jpg)
 `continue`, `for`  can be translated in the same way.
+## function arguments pass
+When analysing the function's defination, we can store the formal arguments as function's local varibles.
+As soon as we call this function, we should calculate the real arguments in the level upper the function, and then pass value to the function's formal varibles one by one.
+
+I use an instruction `MOV` to achive this goal. `MOV  addr1, addr2` will store value stk[top-n2] in stk[top-n1].
+Let's have a look at how to call a function and pass args value.
+
+Before we call a function, its real args will be calculated in the level upper this function. Note function level is n+1, and we call this function in level n.
+In level n, we calculated function's args, all values are stored in the data stack of level n. Now call function and enter it. Data stack reaches level n+1 and grows three spaces for `DL`,`SL`,`RA`. The following space are for function's local varibles. So we can mov level n's real args value to these places according to function's argument num and varible num.
+
+For example, function has n1 args, n2 local varibles(excluding args), then 
+```python
+for i in [0,1..,n1-1]:
+    mov , n2+n1+3+i, n2 + i
+```
+The moment we returned level n, we should rewind top for n1 spaces, `OPR,n1,'BACK'` can make it.
+## function return
+Also, mark function level as n+1, and outer(upper) is level n.
+To implement `return` sentence, we just need to do two things:
+* calculate `return` sentence value **in level n+1**
+* pass this value to level n
+It seems that it's hard to pass level n+1 's value to level n. Once we returned to level n, level n+1 's data in  data stack will be cleared.
+
+I use a extra register `reg` to achive this. Before we return, 
+* calculate return value
+* `OPR ,0,'POP'`  will pop the value and store it in reg
+* return level n
+* `OPR,0,'PUSH'` will push reg value to stack top
+
+Now the return value has be passed from level n+1 to level n
+
 ## instruction fillback
 Taking `while` block as an example, Note that we don't know the `JPC` instruction's target addr until we finish analysing the whole block.The Solution is that after we analyse while condition, we generate an instruction with no target address, just take a place. We note down this instruction's address. As soon as we finish analysing the whole  `while` block, the instruction pointer, namely `ip`, pointing to the target address of `JPC`. Then we fill back the `JPC` instruction with the target address along to ip.
 

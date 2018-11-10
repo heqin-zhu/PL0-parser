@@ -609,7 +609,7 @@ class PL0(parser):
                 else:
                     self.genIns('LOD',abs(self.level-sym.level),sym.addr)
         else:
-            self.errorExpect('a varible or const or num')
+            self.errorExpect('a value')
     def level1(self):
         self.level2()
         while 1:
