@@ -20,11 +20,12 @@ from operator import eq,ge,gt,ne,le,lt, not_,and_,or_,lshift,rshift, add,sub,mod
 
 parser = argparse.ArgumentParser()
 
-parser.add_argument('-i','--instruction',action='store_true')
-parser.add_argument('-s','--stack',action='store_true')
-parser.add_argument('-t','--token',action='store_true')
-parser.add_argument('-v','--varible',action='store_true')
-parser.add_argument('-f','--file',type=str)
+
+parser.add_argument('-i','--instruction',help="output instructions",action='store_true')
+parser.add_argument('-s','--stack',help="output data stack when executing each instruction",action='store_true')
+parser.add_argument('-t','--token',help="output tokens when parsing",action='store_true')
+parser.add_argument('-v','--varible',help="output varibles for every static environment",action='store_true')
+parser.add_argument('-f','--file',help="compile and run codes. \n Without this arg, enter interactive REPL",type=str)
 
 args = parser.parse_args()
 

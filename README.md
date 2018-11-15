@@ -5,13 +5,16 @@ See grammar [here](#grammar), [wikipedia-PL0](https://en.wikipedia.org/wiki/PL/0
 
 # QuickStart
 ```shell
-python parse.py  [-i] [-s] [-f file]
+usage: parser.py [-h] [-i] [-s] [-t] [-v] [-f FILE]
 
--i: output instruction
--t: output tokens when parsing
--s: output data stack when executing each instruction
--v: output varibles for every static environment
--f: compile and run codes, if hasn't this arg, enter interactively state, namely REPL.
+optional arguments:
+  -h, --help            show this help message and exit
+  -i, --instruction     output instructions
+  -s, --stack           output data stack when executing each instruction
+  -t, --token           output tokens when parsing
+  -v, --varible         output varibles for every static environment
+  -f FILE, --file FILE  compile and run codes. Without this arg, enter
+                        interactive REPL
 ```
 
 Run `python parse.py` and enter a REPL state, you can type and run sentences and expressions interactively
