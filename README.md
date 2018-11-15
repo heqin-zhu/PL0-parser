@@ -129,7 +129,7 @@ The  14.0 th fib item is: 377.0
 * continue
 * return
 
-## buildin function
+## builtin function
 * print(a,b,c...)
 * random(), random(n)
 

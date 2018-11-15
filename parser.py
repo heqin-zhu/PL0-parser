@@ -65,7 +65,7 @@ class stack:
     '''emulate a stack that with pre-allocated space'''
     def __init__(self,lst,size=1000):
         self.lst = lst.copy()
-        self.top=2
+        self.top=0
         self.lst+=[0]*(size-len(lst))
 
     def push(self,val):
@@ -84,6 +84,16 @@ class stack:
         return str(self.lst)
     def __repr__(self):
         return 'stack({})'.format(self.lst)
+class instruction:
+    def __init__(self,name,levelDiff,addr):
+        self.name=name
+        self.levelDiff=levelDiff
+        self.addr=addr
+    def __str__(self):
+        s = self.addr
+        if type(self.addr)==str:
+            s = '"'+self.addr+'"'
+        return '({}, {}, {})'.format(self.name.ljust(4),self.levelDiff,s)
 class closure:
     '''environment for every function, including a dict of symbols and pointing to outer environment'''
     def __init__(self,items=None,outer=None):
@@ -134,7 +144,7 @@ class parser(object):
             self.errorDefine(var)
         return sym
     def genIns(self,f,l,a):
-        self.codes.append((f,l,a))
+        self.codes.append(instruction(f,l,a))
         self.ip+=1
         return self.ip-1
     def errorInfo(self):
@@ -172,6 +182,7 @@ class parser(object):
             return self.tokens[self.pointer-1]
         self.errorExpect('"'+sym.value+'"')
     def parse(self,tokens=None):
+        '''parse codes from tokens, then generate instructions and execute them'''
         self.ip=0
         self.codes=[]
         self.pointer=0
@@ -181,7 +192,7 @@ class parser(object):
             self.program()
             if SHOWINS:
                 print('Instructions:')
-                for i,ins in enumerate(self.codes):print(str(i).ljust(5),ins)
+                for i,ins in enumerate(self.codes):print(str(i).ljust(4),ins)
             if self.pointer != len(self.tokens):
                 raise Exception ('[Error]: invalid syntax')
         #try:pass
@@ -200,6 +211,7 @@ class parser(object):
         if res!=[]: print()
 
     def isType(self,s):
+        '''judge the lookahead symbol'''
         if self.pointer == len(self.tokens):sym = Token('EOF','$')
         else:    sym = self.tokens[self.pointer]
         if s in self.reserved: return sym.value==s.lower()
@@ -209,13 +221,19 @@ class parser(object):
         return any([self.isType(i) for i in lst])
     def wantType(self,s):
         if not self.isType(s): self.errorExpect(s)
+    def fillBack(self,ip,addr,levelDiff=None):
+        self.codes[ip].addr= addr
+        if levelDiff is not None:self.codes[ip].levelDiff=levelDiff
     def program(self):
+        '''the begining of a grammar, to implement'''
         pass
     def interpret(self):
+        '''the code executing emulator'''
         pass
 
 class PL0(parser):
     def __init__(self,tokens=None,syms=None,codes=None,level=0):
+        '''init pc, closure, reserved keywords, operators'''
         super().__init__()
         self.reserved={'FUNC','PRINT','RETURN','BEGIN','END','IF','THEN','FOR','ELIF','ELSE','WHILE','DO','BREAK','CONTINUE','VAR','CONST','ODD','RANDOM'}
         self.bodyFirst= self.reserved.copy()
@@ -238,8 +256,8 @@ class PL0(parser):
         self.genIns('INT',0,None)
         self.genIns('JMP',0,None)
         ip= self.body()
-        self.codes[0]=('INT',0,self.curClosure.varNum+3)
-        self.codes[1]=('JMP',0,ip)
+        self.fillBack(0,self.curClosure.varNum+3)
+        self.fillBack(1,ip)
         self.match(PERIOD)
         self.genIns('OPR',0,'RET')
     def body(self):
@@ -268,7 +286,7 @@ class PL0(parser):
                 self.level +=1
                 sym.closure=closure(outer=self.curClosure)
                 self.curClosure = sym.closure
-                beginIp = self.genIns( 'INT',None,None)
+                beginIp = self.genIns( 'INT',0,None)
                 narg = len(args)
                 sym.argNum = narg
                 ips=[]
@@ -281,9 +299,9 @@ class PL0(parser):
                 span1 = nvar -narg
                 span2 = 3+nvar
                 for i ,ip in enumerate(ips):
-                    self.codes[ip] = ('MOV',span2+i,span1+i)
+                    self.fillBack(ip,span1+i,span2+i)
                 self.match(SEMICOLON)
-                self.codes[beginIp] = ('INT',0,nvar+3)
+                self.fillBack(beginIp,nvar+3)
                 self.level -=1
                 self.genIns('OPR',0,'RET')
             else:break
@@ -295,7 +313,7 @@ class PL0(parser):
                 self.genIns('STO',0,sym.addr)
         if not  self.isType('PERIOD'):
             for ip in self.sentence()['RETURN']:
-                self.codes[ip] = ('JMP',0,self.ip)
+                self.fillBack(ip,self.ip)
         return ret
     def arg_list(self):
         self.match(LEFT)
@@ -356,9 +374,9 @@ class PL0(parser):
             jmpIps = []
             while self.isType('ELIF'):
                 self.match()
-                ip = self.genIns('JMP',None,None)
+                ip = self.genIns('JMP',0,None)
                 jmpIps.append(ip)
-                self.codes[jpcIp] = ('JPC',0,self.ip)
+                self.fillBack(jpcIp,self.ip)
                 self.sentenceValue()
                 jpcIp = self.genIns('JPC',0,None)
                 self.match(THEN)
@@ -370,14 +388,14 @@ class PL0(parser):
                 self.match()
                 ip = self.genIns('JMP',0,None)
                 jmpIps.append(ip)
-                self.codes[jpcIp] = ('JPC',0,self.ip)
+                self.fillBack(jpcIp,self.ip)
                 dic=self.sentence(outerLoop)
                 for i in ['BREAK','CONTINUE','RETURN']:
                     ret[i] = ret[i].union(dic[i])
             else:
-                self.codes[jpcIp] = ('JPC',0,self.ip)
+                self.fillBack(jpcIp,self.ip)
             for ip in jmpIps:
-                self.codes[ip] = ('JMP',0,self.ip)
+                self.fillBack(ip,self.ip)
         elif self.isType('WHILE') or self.isType('FOR'):
             tp = self.match()
             beginIp = jpcIp =None
@@ -401,11 +419,11 @@ class PL0(parser):
                 self.match(RIGHT)
             ret  = self.sentence(1)
             self.genIns('JMP',0,beginIp)
-            self.codes[jpcIp] = ('JPC',0,self.ip)
+            self.fillBack(jpcIp,self.ip)
             for jmpip in ret['BREAK']:
-                self.codes[jmpip] = ('JMP',0,self.ip)
+                self.fillBack(jmpip,self.ip)
             for jmpip in ret['CONTINUE']:
-                self.codes[jmpip] = ('JMP',0,beginIp)
+                self.fillBack(jmpip,beginIp)
         elif self.isType('RETURN'): # retrun sentence
             self.match()
             self.sentenceValue()
@@ -466,9 +484,9 @@ class PL0(parser):
             self.sentenceValue()
             ip2 = self.genIns('JMP',0,None)
             self.match(COLON)
-            self.codes[ip] = ('JPC',0,self.ip)
+            self.fillBack(ip,self.ip)
             self.sentenceValue()
-            self.codes[ip2] = ('JMP',0,self.ip)
+            self.fillBack(ip2,self.ip)
     def condition_and(self):
         self.condition_not()
         while self.isType('AND'):
@@ -608,59 +626,59 @@ class PL0(parser):
                 curLevel = stk[curLevel]
             return curLevel
 
-        b = 0
         stk = stack([0,0,0])
-        pc=0
+        stk.top=2
+        b = pc=0
         reg = None
         while 1:
             ins = self.codes[pc]
             pc+=1
-            if ins[0]=='INT':
-                if ins[1]==0: stk.top+=ins[2]-3 # allocate space
-                elif ins[1]==1: stk.top-=ins[2] # rewind stack top bakc n spaces
-                elif ins[1]==2: #print 
-                    stk.top = stk.top-ins[2]+1
-                    for i in range(ins[2]):
+            if ins.name=='INT':
+                if ins.levelDiff==0: stk.top+=ins.addr-3 # allocate space
+                elif ins.levelDiff==1: stk.top-=ins.addr # rewind stack top bakc n spaces
+                elif ins.levelDiff==2: #print 
+                    stk.top = stk.top-ins.addr+1
+                    for i in range(ins.addr):
                         print(stk[stk.top+i],end=' ')
                     print()
                     stk.top-=1
                 else:self.errorIns(ins,pc-1)
-            elif ins[0]=='LIT':
-                stk.push(ins[2])
-            elif ins[0]=='STO':
-                pos = base(stk,b,ins[1])+ins[2]
+            elif ins.name=='LIT':
+                stk.push(ins.addr)
+            elif ins.name=='STO':
+                pos = base(stk,b,ins.levelDiff)+ins.addr
                 stk[pos]= stk.pop()
-            elif ins[0]=='LOD':
-                val = stk[base(stk,b,ins[1])+ins[2]]
+            elif ins.name=='LOD':
+                val = stk[base(stk,b,ins.levelDiff)+ins.addr]
                 stk.push(val)
-            elif ins[0]=='MOV':
-                stk[stk.top-ins[2]] = stk[stk.top-ins[1]]
-            elif ins[0]=='JMP':
-                pc = ins[2]
-            elif ins[0]=='JPC':
+            elif ins.name=='MOV':
+                stk[stk.top-ins.addr] = stk[stk.top-ins.levelDiff]
+            elif ins.name=='JMP':
+                pc = ins.addr
+            elif ins.name=='JPC':
                 if not stk.pop():
-                    pc = ins[2]
-            elif ins[0]=='CAL':
-                stk.push(base(stk,b,ins[2]))  # static link  
+                    pc = ins.addr
+            elif ins.name=='CAL':
+                stk.push(base(stk,b,ins.addr))  # static link  
                 stk.push(b)       # dynamic link
                 b = stk.top-1
                 stk.push(pc)      # return addr
-                pc = ins[2]
-            elif ins[0]=='OPR':
-                if ins[1]==1:
-                    stk[stk.top] = self.unaryOPR[ins[2]](stk[stk.top])
-                elif ins[1]==2:
+                pc = ins.addr
+            elif ins.name=='OPR':
+                if ins.levelDiff==1:
+                    stk[stk.top] = self.unaryOPR[ins.addr](stk[stk.top])
+                elif ins.levelDiff==2:
                     arg2 = stk.pop()
                     arg1 = stk[stk.top]
-                    stk[stk.top] = self.binaryOPR[ins[2]](arg1,arg2)
-                if ins[1]==0:
-                    if ins[2] =='RET':
+                    stk[stk.top] = self.binaryOPR[ins.addr](arg1,arg2)
+                if ins.levelDiff==0:
+                    if ins.addr =='RET':
                         pc = stk[b+2]
                         if pc!=0: stk.top=b-1
                         b = stk[b+1]
-                    elif ins[2]=='POP':
+                    elif ins.addr=='POP':
                         reg = stk.pop()
-                    elif ins[2]=='PUSH':
+                    elif ins.addr=='PUSH':
                         stk.push(reg)
                     else:self.errorIns(ins,pc-1)
             else:
