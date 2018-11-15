@@ -1,21 +1,24 @@
 # PL0-compiler
-> A compiler for c-like programming language PL0.
+> A compiler for c-like programming language **based on** PL0, which is a dynamic, strong typing language.
 
-See grammar [here](#grammar), PL0 on [wikipedia](https://en.wikipedia.org/wiki/PL/0), and download [this pdf(zh)](src/编译原理和技术实践2017.pdf) for more details.
+See grammar [here](#grammar), [wikipedia-PL0](https://en.wikipedia.org/wiki/PL/0), and download [this pdf(zh)](src/编译原理和技术实践2017.pdf) for more details.
 
 # QuickStart
 ```shell
-python parse.py  [-i] [-f file]
+python parse.py  [-i] [-s] [-f file]
 
 -i: output instruction
--f: compile and run the codes stored in file
+-t: output tokens when parsing
+-s: output data stack when executing each instruction
+-v: output varibles for every static environment
+-f: compile and run codes, if hasn't this arg, enter interactively state, namely REPL.
 ```
 
 Run `python parse.py` and enter a REPL state, you can type and run sentences and expressions interactively
 
 # Examples
 Note that when in REPL, every sentence or expresion or block ends with '.'. But in program codes, only the whole program ends with a dot.
-##  expression-example
+##  interactive-expression
 
 run command `python parser.py` to enter repl.
 
@@ -23,58 +26,32 @@ Therer are some expressions and sentence in file expr.txt, now test it.
 `python parser.py -f test/expr.txt`
 
 ```c
->> File: "expr.txt"
+>> File: "test/expr.txt"
 1
 2     // expression
-3     E.
-result: 2.718281828459045,
->> var a,b,c;.
->>  a:=b:=3.
+3     var a=3,b=2,c;.
 >>  c:=a+1.
->>  c.
-result: 4.0,
->>  c+1!=1.
-result: True,
->> c+1=5.
-result: True,
->> File: "expr.txt"
-1
-2     while c>0 do
-3     begin
-4         c:= c-1;
-5         print('c is:',c);
-6     end.
-c is: 3.0
-c is: 2.0
-c is: 1.0
-c is: 0.0
->> File: "expr.txt"
-1
-2     ++1--1.
-result: 2.0,
->> 1<<2+3%2.
-result: 8,
->> 2&1.
-result: 0,
->> (1.5+1.5)*-1.1.
-result: -3.3000000000000003,
+>> begin c; c+1!=1 ; c+1=5 end.
+result: 4.0; True; True;
+>> for(;b>=0;b:=b-1) print('random num below 100:',random(100)) .
+random num below 100: 73
+random num below 100: 16
+random num below 100: 51
+>> begin ++1--1; 1<<2+3%2; 2&1 end.
+result: 2.0; 8; 0;
 >>   -1+2*3/%2.
-result: 2.0,
->>  2-2-.
-line 1: 2 - 2 - .
-                ^
-[Error]: Expect a value, got "."
+result: 2.0;
 >>    (1+2.
 line 1: ( 1 + 2 .
                 ^
-[Error]: Expect ")", got "."
->> 4!!.
-result: 620448401733239439360000,
+[Error]: Expected ")", got "."
+>> print('const e:',E,'    fac of fac 4:',4!!).
+const e: 2.718281828459045     fac of fac 4: 620448401733239439360000
 ```
 
-## factorial-example
+## fibonacci
 run
-`python parser.py  -f test/fibnaci.txt`
+`python parser.py  -f test/fibonacci.txt`
 
 ```c
 >> File: "test/fibnaci.txt"
@@ -149,23 +126,27 @@ The  14.0 th fib item is: 377.0
 * continue
 * return
 
-# Grammar
-```bnf
-program =  body "."
-body = {varDeclaration ";" |  constDeclaration ";" |  "func" ident "(" arg_list  ")" body ";"}  sentence 
+## buildin function
+* print(a,b,c...)
+* random(), random(n)
 
-varDeclaration = "var"  varIdent | varDeclaration "," varIdent
-varIdent  =  ident | varIdent "[" number "]" 
+# Grammar
+```scala
+program =  body "."
+body = {varDeclaration ";" |  constDeclaration ";" |  "func" ident "(" arg_list  ")" body ";"}  sentence
+
+varDeclaration = "var"  varIdent { "," varIdent}
+varIdent  = ident ["=" number] | ident  { "[" number "]" } 
 constDeclaration = "const" ident "=" number {"," ident "=" number}
 
-sentence = [ ident ":=" sentenceValue {":=" sentenceValue}
-		|  "begin" sentence { ";" sentence}  "end"
-		|  "if" sentenceValue "then" sentence  ["else" sentence]
-		|  "while" sentenceValue "do" sentence
-		|  "break"
-		|  "continue"
-		|  ["return"] sentenceValue
-		|  "print" "(" real_arg_list ")" ]
+sentence = [ ident ":=" { ident ":=" } sentenceValue 
+                |  "begin" sentence { ";" sentence}  "end"
+                |  "if" sentenceValue "then" sentence  ["else" sentence]
+                |  "while" sentenceValue "do" sentence
+                |  "break"
+                |  "continue"
+                |  ["return"] sentenceValue
+                |  "print" "(" real_arg_list ")" ]
 
 sentenceValue =   condition
 
@@ -177,15 +158,15 @@ real_arg_list = sentenceValue {"," sentenceValue }
 condition = condition_or [ "?" sentenceValue ":" sentenceValue ]
 condition_or  = condition_and { "||" condition_or }
 condition_and = condition_not { condition_not "&&" condition_and}
-condition_not = {"!"} condition_unit 
-condiiton_unit = ["odd"] expression 
-			| expression ("<" | ">" | "<=" | ">=" | "=" | "!=") expression
+condition_not = {"!"} condition_unit
+condiiton_unit = ["odd"] expression
+                        | expression ("<" | ">" | "<=" | ">=" | "=" | "!=") expression
 
 expression =  level1 { ("<<"| ">>" | "&" | "|") level1 }
 level1  = level2 { ( "+" | "-" ) level2 }
 level2 = level3 { "*" | "/" | "/%" | "%" ) level3 }
 level3 = level4 {"^" level4}
-level4 = item {"!"}   
+level4 = item {"!"}          (*  factorial *)
 item =  number  |ident { "(" real_arg_list ")" }| "(" sentenceValue" )" | ("+" | "-" | "~" ) item
 ```
 ## syntax 
@@ -319,33 +300,29 @@ Now the return value has be passed from level n+1 to level n
 Taking `while` block as an example, Note that we don't know the `JPC` instruction's target addr until we finish analysing the whole block.The Solution is that after we analyse while condition, we generate an instruction with no target address, just take a place. We note down this instruction's address. As soon as we finish analysing the whole  `while` block, the instruction pointer, namely `ip`, pointing to the target address of `JPC`. Then we fill back the `JPC` instruction with the target address along to ip.
 
 ## symbol table
+When analysing and translating, we want to get the symbol which including level, address,(value for constant) according to its name. The following shows how to achive it elegantly
+
 There are three types of symbols:
 * constant
 * varible
 * function name
+Every function has an environment that contains this level's symbols, and an outer environment(except main function). Every environment has the three symbols mentioned above.
 
-Since the compiler allow same name varibles in different function (may be in the same level), I designd the symbol table to achieve it conveniently.
+Defaultly, we are in the main function in the beginning of this program.
 
-For global identifiers, they are in the symbols dict. And there is no same names for different identifiers.
-For function arguments, local varibles, I store them in the function symbol's `args` dict, so there won't be conflits when different functions have same local varible names.
+In an enviroment, when we meet a symbol, we should seek it in current environment. If not found, go for the outer environment recursively until we found it.
 
-When analysing and translating, we want to get the symbol which including level, address,(value for constant) according to its name.
+It gurantees that every environment has no same names for different symbols but may have same names in different environment.
 
-For global identifiers, it is so easy.
-For function arguments, we need the function symbol. 
-So I use a `curFunc` varible to  note down in which function the identifier is visited.
+So there won't be conflits when different functions have same local varibles or arguments.
 
-Every time when callling a function `f`, we do the following things
+I create class `closure` to describe this kind of environment and varible `curClosure` to  mark down current environment. Every time when calling a function, we enter a more inner environment. We do the following things to make sure that environment changes creately.
 ```python
-saved = curFunc
-curFunc = f
-call f
-curFunc = saved
+saved = curClosure
+curClosure = function.closure
+call function
+curClosure = saved
 ```
-This ensures that we can get the symbol accoding to a name of an identifier.
-
-## features
-* bullutin function: print(a,b,c...)
 # To do
 - [ ] array
 - [ ] different value pass

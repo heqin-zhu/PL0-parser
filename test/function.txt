@@ -1,0 +1,10 @@
+func outer(a,b)
+    var c;
+    func inner(a,b) print('inner a,b,c:',a,b,c);
+    begin
+        c:=2;
+        inner(5,6);
+        print('outer a,b,c:',a,b,c);
+    end;
+
+outer(0,1).

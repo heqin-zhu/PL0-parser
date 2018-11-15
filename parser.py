@@ -6,12 +6,13 @@
 # Blog: https://mbinary.coding.me
 # Github: https://github.com/mbinary
 # Created Time: 2018-11-04  19:50
-# Description: 
+# Description:
 #########################################################################
 '''
 import sys
 import argparse
 from math import e,pi,log
+from random import randint
 from functools import reduce
 from token_scanner import gen_token,Token
 from operator import eq,ge,gt,ne,le,lt, not_,and_,or_,lshift,rshift, add,sub,mod,mul,pow,abs,neg
@@ -20,21 +21,24 @@ from operator import eq,ge,gt,ne,le,lt, not_,and_,or_,lshift,rshift, add,sub,mod
 parser = argparse.ArgumentParser()
 
 parser.add_argument('-i','--instruction',action='store_true')
+parser.add_argument('-s','--stack',action='store_true')
+parser.add_argument('-t','--token',action='store_true')
+parser.add_argument('-v','--varible',action='store_true')
 parser.add_argument('-f','--file',type=str)
 
 args = parser.parse_args()
 
 FILE = args.file
-hasIns = args.instruction
+SHOWINS = args.instruction
+SHOWSTACK = args.stack
+SHOWVAR = args.varible
+SHOWTOKEN = args.token
 
-# reserved  keywords  
-# IF,ELSE,THEN,BREAK,CONTINUE,WHILE,BEGIN,END,DO,CALL,PROC,CONST,VAR, ODD
 
 THEN = Token('NAME','then')
 ELSE = Token('NAME','else')
 DO = Token('NAME','do')
 END = Token('NAME','end')
-
 ASSIGN = Token('ASSIGN',':=')
 EQ = Token('EQ','=')
 LEFT = Token('LEFT','(')
@@ -43,10 +47,9 @@ COMMA=Token('COMMA',',')
 SEMICOLON = Token('SEMICOLON',';')
 PERIOD = Token('PERIOD','.')
 COLON = Token('COLON',':')
-EOF = Token('EOF','$')
 
 class symbol:
-    '''for func type, it may have args, argNum ... attrs'''
+    '''symbols for const, varible, function name'''
     def __init__(self,name,varType,value=None,level=None,addr = None):
         self.name = name
         self.type = varType
@@ -80,6 +83,31 @@ class stack:
         return str(self.lst)
     def __repr__(self):
         return 'stack({})'.format(self.lst)
+class closure:
+    '''environment for every function, including a dict of symbols and pointing to outer environment'''
+    def __init__(self,items=None,outer=None):
+        self.outer =outer
+        if items is None:self.items=dict()
+        else: self.items  = items
+        self.varNum=0
+    def __getitem__(self,key):
+        cur = self
+        while cur is not None:
+            if key in cur.items:
+                return cur.items[key]
+            cur = cur.outer
+    def __setitem__(self,key,val):
+        if key in self.items:raise Exception('[Error]: {} has been defined'.format(key))
+        if val.type=='VAR':
+            self.varNum+=1
+        self.items[key] = val
+    def __contains__(self,key):
+        return key in self.items
+    def __iter__(self):
+        return iter(self.items.values())
+    def __repr__(self):
+        return ','.join(str(i) for i in self.items.values())
+
 class parser(object):
     def __init__(self,tokens=None,syms=None,codes=None):
         self.tokens = [] if tokens is None else tokens
@@ -91,104 +119,23 @@ class parser(object):
         self.initSymbol(syms)
     def initSymbol(self,syms=None):
         if syms is None: syms=[symbol('E','CONST',e,0),symbol('PI','CONST',pi,0)]
-        self.symbols ={}
+        self.closure=closure()
+        self.curClosure = self.closure
         for i in syms:
             self.addSymbol(i.name,i.type,i.value)
-    def addSymbol(self,var,varType,value=None,addr=None,func=None):
-        if self.level not in self.symbols:
-            self.symbols[self.level] = []
-        lv = self.symbols[self.level]
-        for i in lv:
-            if i.name==var:
-                self.errorInfo()
-                raise Exception('[Error]: {} "{}" has been defined'.format(varType.lower(),var))
-        sym = symbol(var,varType,value,self.level,addr)
-        if func is not None:
-            func.args[var] = sym
-        else: lv.append(sym)
+    def addSymbol(self,var,varType,value=None):
+        sym = symbol(var,varType,value,self.level,self.curClosure.varNum+3)
+        self.curClosure[var]=sym
         return sym
-    def getSymbol(self,var,isFunc=False):
-        if not isFunc and self.curFunc is not None:
-            if var in self.curFunc.args:return self.curFunc.args[var]
-        level = self.level
-        while level >=0:
-            if level in self.symbols:
-                lv = self.symbols[level]
-                for sym in lv:
-                    if sym.name==var:
-                        return sym
-            level-=1
-        self.errorDefine(var)
+    def getSymbol(self,var):
+        sym = self.curClosure[var]
+        if sym is None:
+            self.errorDefine(var)
+        return sym
     def genIns(self,f,l,a):
         self.codes.append((f,l,a))
         self.ip+=1
         return self.ip-1
-    def interpret(self):
-        def base(stk,curLevel,levelDiff):
-            for i in range(levelDiff):
-                curLevel = stk[curLevel]
-            return curLevel
-
-        b = 0
-        stk = stack([0,0,0])
-        pc=0
-        reg = None
-        while 1:
-            ins = self.codes[pc]
-            pc+=1
-            if ins[0]=='INT':
-                stk.top+=ins[2]-3
-            elif ins[0]=='LIT':
-                stk.push(ins[2])
-            elif ins[0]=='STO':
-                pos = base(stk,b,ins[1])+ins[2]
-                stk[pos]= stk.pop()
-            elif ins[0]=='LOD':
-                val = stk[base(stk,b,ins[1])+ins[2]]
-                stk.push(val)
-            elif ins[0]=='MOV':
-                stk[stk.top-ins[2]] = stk[stk.top-ins[1]]
-            elif ins[0]=='JMP':
-                pc = ins[2]
-            elif ins[0]=='JPC':
-                if not stk.pop():
-                    pc = ins[2]
-            elif ins[0]=='CAL':
-                stk.push(base(stk,b,ins[2]))  # static link  
-                stk.push(b)       # dynamic link
-                b = stk.top-1
-                stk.push(pc)      # return addr
-                pc = ins[2]
-            elif ins[0]=='PRT':
-                stk.top = stk.top-ins[2]+1
-                for i in range(ins[2]):
-                    print(stk[stk.top+i],end=' ')
-                print()
-                stk.top-=1
-            elif ins[0]=='OPR':
-                if ins[2]=='BACK':
-                    stk.top-=ins[1]
-                elif ins[1]==1:
-                    stk[stk.top] = self.unaryOPR[ins[2]](stk[stk.top])
-                elif ins[1]==2:
-                    arg2 = stk.pop()
-                    arg1 = stk[stk.top]
-                    stk[stk.top] = self.binaryOPR[ins[2]](arg1,arg2)
-                if ins[1]==0:
-                    if ins[2] =='RET':
-                        pc = stk[b+2]
-                        if pc!=0: stk.top=b-1
-                        b = stk[b+1]
-                    elif ins[2]=='POP':
-                        reg = stk.pop()
-                    elif ins[2]=='PUSH':
-                        stk.push(reg)
-                    else:self.errorIns(ins,pc-1)
-            else:
-                self.errorIns(ins,pc-1)
-            #print(ins,stk[:stk.top+1])
-            if pc==0:break
-        return stk[3:stk.top+1]
     def errorInfo(self):
         tk = self.tokens[self.pointer]
         a=b = self.pointer
@@ -206,19 +153,17 @@ class parser(object):
     def errorIns(self,ins,pc):
         print('[Error]: Unknown instruction {}: {}  '.format(pc,ins))
     def errorDefine(self,var):
-        self.errorInfo()
         raise Exception('[Error]: "{}" is not defined'.format(var))
     def errorArg(self,n1,n2):
-        self.errorInfo()
-        raise Exception('[Error]: Expect {} args, but {} given'.format(n1,n2))
+        raise Exception('[Error]: Expected {} args, but {} given'.format(n1,n2))
     def errorExpect(self,s):
-        tk = self.errorInfo()
-        raise Exception('[Error]: Expect {}, got "{}"'.format(s,tk.value))
+        raise Exception('[Error]: Expected {}, got "{}"'.format(s,self.tokens[self.pointer].value))
     def errorLoop(self,s):
-        self.errorInfo()
         raise Exception('[Error]: "{}" outside loop'.format(s))
     def match(self,sym=None):
-        #print(self.tokens[self.pointer])
+        if SHOWTOKEN:
+            print('Tokens:')
+            print(self.tokens[self.pointer])
         if sym is None \
            or (sym.type=='NUM' and self.isType('NUM')) \
            or sym==self.tokens[self.pointer]:
@@ -229,30 +174,32 @@ class parser(object):
         self.ip=0
         self.codes=[]
         self.pointer=0
-        self.curFunc = None
         if tokens is not None: self.tokens = tokens
-        if self.tokens is None:
-            return
+        if self.tokens is None:return
         try:
             self.program()
-            if hasIns:
+            if SHOWINS:
+                print('Instructions:')
                 for i,ins in enumerate(self.codes):print(str(i).ljust(5),ins)
             if self.pointer != len(self.tokens):
-                print('[Error]: invalid syntax')
-            result =self.interpret()
-            for sym,val in zip(self.varibles,result):
-                sym.value=val
-            res = result[len(self.varibles):]
-            if res!=[]: print('result: ',end='')
-            for i in res:
-                print(i,end=', ')
-            if res!=[]: print()
+                raise Exception ('[Error]: invalid syntax')
         #try:pass
         except Exception as e:
+            self.errorInfo()
             print(e)
+            return
+        result =self.interpret()
+        for sym in self.closure:
+            if sym.type=='VAR':
+                sym.value = result[sym.addr-3]
+        res = result[self.closure.varNum:]
+        if res!=[]: print('result: ',end='')
+        for i in res:
+            print(i,end='; ')
+        if res!=[]: print()
 
     def isType(self,s):
-        if self.pointer == len(self.tokens):sym = EOF
+        if self.pointer == len(self.tokens):sym = Token('EOF','$')
         else:    sym = self.tokens[self.pointer]
         if s in self.reserved: return sym.value==s.lower()
         if s =='NAME' and sym.value.upper() in self.reserved: return False
@@ -263,11 +210,13 @@ class parser(object):
         if not self.isType(s): self.errorExpect(s)
     def program(self):
         pass
+    def interpret(self):
+        pass
 
 class PL0(parser):
     def __init__(self,tokens=None,syms=None,codes=None,level=0):
         super().__init__()
-        self.reserved={'FUNC','PRINT','RETURN','BEGIN','END','IF','THEN','FOR','ELIF','ELSE','WHILE','DO','BREAK','CONTINUE','VAR','CONST','ODD'}
+        self.reserved={'FUNC','PRINT','RETURN','BEGIN','END','IF','THEN','FOR','ELIF','ELSE','WHILE','DO','BREAK','CONTINUE','VAR','CONST','ODD','RANDOM'}
         self.bodyFirst= self.reserved.copy()
         self.bodyFirst.remove('ODD')
         self.relationOPR= {'EQ':eq,'NEQ':ne,'GT':gt,'LT':lt,'GE':ge,'LE':le} # odd
@@ -281,37 +230,30 @@ class PL0(parser):
         self.binaryOPR.update(self.arithmeticOPR)
         self.binaryOPR.update(self.bitOPR)
         del self.binaryOPR['BITNOT']
-        self.unaryOPR = {'NEG':neg,'NOT':not_,'BITNOT':lambda x:~round(x),'FAC':lambda x:reduce(mul,range(1,round(x)+1),1),'ODD':lambda x:round(x)%2==1}#abs
+        self.unaryOPR = {'NEG':neg,'NOT':not_,'BITNOT':lambda x:~round(x),'FAC':lambda x:reduce(mul,range(1,round(x)+1),1),'ODD':lambda x:round(x)%2==1, 'RND':lambda x:randint(0,x)}#abs
 
     def program(self):
         self.enableJit = False
+        self.genIns('INT',0,None)
         self.genIns('JMP',0,None)
-        ip,_= self.body()
-        self.codes[0]=('JMP',0,ip)
+        ip= self.body()
+        self.codes[0]=('INT',0,self.curClosure.varNum+3)
+        self.codes[1]=('JMP',0,ip)
         self.match(PERIOD)
         self.genIns('OPR',0,'RET')
-    def body(self,varCount = 0,func=None):
+    def body(self):
         while 1:
-            if self.isType('CONST'):
-                self.match()
+            if self.isType('CONST') or self.isType('VAR'):
+                tp = self.match().value.upper()
                 while 1:
                     self.wantType('NAME')
                     name = self.match().value
-                    self.match(EQ)
-                    self.wantType('NUM')
-                    num = float(self.match().value)
-                    self.addSymbol(name,'CONST',num,func=func)
-                    if self.isType('SEMICOLON'):
-                        self.match()
-                        break
-                    self.match(COMMA)
-            elif self.isType('VAR'):
-                self.match()
-                while 1:
-                    self.wantType('NAME')
-                    name = self.match().value
-                    self.addSymbol(name,'VAR',addr = varCount+3,func=func)
-                    varCount+=1
+                    val = None
+                    if self.isType('EQ'):
+                        self.match(EQ)
+                        self.wantType('NUM')
+                        val = float(self.match().value)
+                    self.addSymbol(name,tp,val)
                     if self.isType('SEMICOLON'):
                         self.match()
                         break
@@ -321,22 +263,21 @@ class PL0(parser):
                 self.wantType('NAME')
                 name = self.match().value
                 args = self.arg_list()
-                beginIp  = self.genIns('INT',0,None)
-                sym = self.addSymbol(name,'FUNC',None,beginIp)
+                sym = self.addSymbol(name,'FUNC',self.ip)
                 self.level +=1
-                sym.args={}
-                n = len(args)
-                sym.argNum = n
+                sym.closure=closure(outer=self.curClosure)
+                self.curClosure = sym.closure
+                beginIp = self.genIns( 'INT',None,None)
+                narg = len(args)
+                sym.argNum = narg
                 ips=[]
-                for i,arg in enumerate(args):
-                    argSym = symbol(arg,'VAR',level=self.level,addr=i+3)
-                    sym.args[arg] = argSym
+                for arg in args:
+                    self.addSymbol(arg,'VAR')
                     ips.append(self.genIns('MOV',None,None))
-                saved = self.curFunc
-                self.curFunc = sym
-                _,nvar = self.body(n,sym)
-                self.curFunc = saved
-                span1 = nvar -n
+                self.body()
+                nvar = self.curClosure.varNum
+                self.curClosure = self.curClosure.outer
+                span1 = nvar -narg
                 span2 = 3+nvar
                 for i ,ip in enumerate(ips):
                     self.codes[ip] = ('MOV',span2+i,span1+i)
@@ -345,19 +286,16 @@ class PL0(parser):
                 self.level -=1
                 self.genIns('OPR',0,'RET')
             else:break
-        ret = None
-        if self.level ==0:
-            self.varibles =[sym for sym in  self.symbols[0] if sym.type=='VAR']
-            n= len(self.varibles)
-            ret = self.genIns( 'INT',0,n+3) #varCount+3)
-            for sym in self.varibles:
-                if sym.value is not None:
-                    self.genIns('LIT',0,sym.value)
-                    self.genIns('STO',0,sym.addr)
+        ret = self.ip
+        if SHOWVAR: print(self.closure)
+        for sym in self.curClosure:
+            if sym.type=='VAR' and sym.value is not None:
+                self.genIns('LIT',0,sym.value)
+                self.genIns('STO',0,sym.addr)
         if not  self.isType('PERIOD'):
             for ip in self.sentence()['RETURN']:
                 self.codes[ip] = ('JMP',0,self.ip)
-        return ret,varCount
+        return ret
     def arg_list(self):
         self.match(LEFT)
         li = []
@@ -399,7 +337,7 @@ class PL0(parser):
         elif self.isType('PRINT'):
             self.match()
             n = self.real_arg_list()
-            self.genIns('PRT',0,n)
+            self.genIns('INT',2,n)
         elif self.isType('BREAK'):
             if outerLoop is None: self.errorLoop('break')
             self.match()
@@ -480,15 +418,15 @@ class PL0(parser):
         return ret
     def funcall(self):
         name = self.match().value
-        sym = self.getSymbol(name,True)
-        saved = self.curFunc
-        self.curFunc = sym
+        sym = self.getSymbol(name)
+        saved = self.curClosure
+        self.curClosure = sym.closure
         n2= self.real_arg_list()
-        self.curFunc = saved
+        self.curClosure = saved
         if sym.argNum!=n2:
             self.errorArg(sym.argNum,n2)
-        self.genIns('CAL',abs(self.level-sym.level),sym.addr)
-        self.genIns('OPR',n2,'BACK')
+        self.genIns('CAL',abs(self.level-sym.level),sym.value)
+        self.genIns('INT',1,n2)
         self.genIns('OPR',0,'PUSH')
     def sentenceValue(self):
         self.condition()
@@ -598,6 +536,15 @@ class PL0(parser):
             self.match()
             self.item()
             self.genIns('OPR',1,'BITNOT')
+        elif self.isType('RANDOM'):
+            self.match()
+            self.match(LEFT)
+            if self.isType('RIGHT'):
+                self.genIns('LIT',0,1<<16)
+            else:
+                self.expression()
+            self.match(RIGHT)
+            self.genIns('OPR',1,'RND')
         elif self.isType('NAME'):
             if self.tokens[self.pointer+1] == LEFT:
                 self.funcall()
@@ -654,6 +601,72 @@ class PL0(parser):
         while self.isType('FAC'):#factorial
             self.match()
             self.genIns('OPR',1,'FAC')
+    def interpret(self):
+        def base(stk,curLevel,levelDiff):
+            for i in range(levelDiff):
+                curLevel = stk[curLevel]
+            return curLevel
+
+        b = 0
+        stk = stack([0,0,0])
+        pc=0
+        reg = None
+        while 1:
+            ins = self.codes[pc]
+            pc+=1
+            if ins[0]=='INT':
+                if ins[1]==0: stk.top+=ins[2]-3 # allocate space
+                elif ins[1]==1: stk.top-=ins[2] # rewind stack top bakc n spaces
+                elif ins[1]==2: #print 
+                    stk.top = stk.top-ins[2]+1
+                    for i in range(ins[2]):
+                        print(stk[stk.top+i],end=' ')
+                    print()
+                    stk.top-=1
+                else:self.errorIns(ins,pc-1)
+            elif ins[0]=='LIT':
+                stk.push(ins[2])
+            elif ins[0]=='STO':
+                pos = base(stk,b,ins[1])+ins[2]
+                stk[pos]= stk.pop()
+            elif ins[0]=='LOD':
+                val = stk[base(stk,b,ins[1])+ins[2]]
+                stk.push(val)
+            elif ins[0]=='MOV':
+                stk[stk.top-ins[2]] = stk[stk.top-ins[1]]
+            elif ins[0]=='JMP':
+                pc = ins[2]
+            elif ins[0]=='JPC':
+                if not stk.pop():
+                    pc = ins[2]
+            elif ins[0]=='CAL':
+                stk.push(base(stk,b,ins[2]))  # static link  
+                stk.push(b)       # dynamic link
+                b = stk.top-1
+                stk.push(pc)      # return addr
+                pc = ins[2]
+            elif ins[0]=='OPR':
+                if ins[1]==1:
+                    stk[stk.top] = self.unaryOPR[ins[2]](stk[stk.top])
+                elif ins[1]==2:
+                    arg2 = stk.pop()
+                    arg1 = stk[stk.top]
+                    stk[stk.top] = self.binaryOPR[ins[2]](arg1,arg2)
+                if ins[1]==0:
+                    if ins[2] =='RET':
+                        pc = stk[b+2]
+                        if pc!=0: stk.top=b-1
+                        b = stk[b+1]
+                    elif ins[2]=='POP':
+                        reg = stk.pop()
+                    elif ins[2]=='PUSH':
+                        stk.push(reg)
+                    else:self.errorIns(ins,pc-1)
+            else:
+                self.errorIns(ins,pc-1)
+            if SHOWSTACK: print(ins,stk[:stk.top+1])
+            if pc==0:break
+        return stk[3:stk.top+1]
 
 def getCode(inStream):
     lines = []
@@ -698,7 +711,5 @@ def testFromFile(f):
         except EOFError:
             pass
 if __name__=='__main__':
-    if FILE:
-        testFromFile(FILE)
-    else:
-        testFromStdIO()
+    if FILE: testFromFile(FILE)
+    else:  testFromStdIO()
