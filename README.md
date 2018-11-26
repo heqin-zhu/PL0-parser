@@ -144,7 +144,7 @@ constDeclaration = "const" ident "=" number {"," ident "=" number}
 
 sentence = [ ident ":=" { ident ":=" } sentenceValue 
                 |  "begin" sentence { ";" sentence}  "end"
-                |  "if" sentenceValue "then" sentence  ["else" sentence]
+                |  "if" sentenceValue "then" sentence {"elif" sentence} ["else" sentence]
                 |  "while" sentenceValue "do" sentence
                 |  "break"
                 |  "continue"
@@ -284,6 +284,9 @@ for i in [0,1..,n1-1]:
     mov , n2+n1+3+i, n2 + i
 ```
 The moment we returned level n, we should rewind top for n1 spaces, `OPR,n1,'BACK'` can make it.
+
+![](src/argument_pass.jpg)
+
 ## function return
 Also, mark function level as n+1, and outer(upper) is level n.
 To implement `return` sentence, we just need to do two things:
