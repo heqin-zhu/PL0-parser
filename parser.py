@@ -58,7 +58,12 @@ class symbol:
         self.level = level
         self.addr=addr
     def __str__(self):
-        return "{} {}={} at lv {}, addr {}".format(self.type,self.name,self.value,self.level,self.addr)
+        if self.type=='FUNC':
+            return "({}, {}, {})".format(self.type,self.name,self.addr)
+        elif self.type=='VAR':
+            return "({}, {}={}, {})".format(self.type,self.name,self.value,self.addr)
+        else:
+            return "({}, {}={})".format(self.type,self.name,self.value)
     def __repr__(self):
         return "symbol('{}','{}',{},{},{})".format(self.name,self.type,self.value,self.level,self.addr)
 class stack:
@@ -117,7 +122,8 @@ class closure:
     def __iter__(self):
         return iter(self.items.values())
     def __repr__(self):
-        return ','.join(str(i) for i in self.items.values())
+        li = [str(i) for i in self.items.values()]
+        return '\n'.join(li)
 
 class parser(object):
     def __init__(self,tokens=None,syms=None,codes=None):
@@ -173,7 +179,6 @@ class parser(object):
         raise Exception('[Error]: "{}" outside loop'.format(s))
     def match(self,sym=None):
         if SHOWTOKEN:
-            print('Tokens:')
             print(self.tokens[self.pointer])
         if sym is None \
            or (sym.type=='NUM' and self.isType('NUM')) \
@@ -306,7 +311,10 @@ class PL0(parser):
                 self.genIns('OPR',0,'RET')
             else:break
         ret = self.ip
-        if SHOWVAR: print(self.closure)
+        if SHOWVAR:
+            print('level: {}'.format(self.level))
+            print(self.curClosure)
+            print()
         for sym in self.curClosure:
             if sym.type=='VAR' and sym.value is not None:
                 self.genIns('LIT',0,sym.value)

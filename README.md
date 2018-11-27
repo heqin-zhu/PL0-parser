@@ -246,7 +246,9 @@ Every instruction consists of three parts. The first is the name of the instruct
 
 name | levelDiff | address | explanation
 :-:|:-:|:-:|:-:
-INT|-|n|allocate n space for one level
+INT|0|n|allocate n space for one level
+INT|1|n|  rewind stk.top backward n steps
+INT|2|n| print the top n elements of stack
 LIT|-|constant value| push a constant value to the top of the data stack
 LOD | levelDiff|addr | load a varible value to the top of the data stack. The var can be found use levelDiff and addr
 STO|levelDiff|addr| store the stack top value to a varible, top decreases. 
@@ -257,7 +259,6 @@ MOV|n1|n2|  stk[top-n2] = stk[top-n1]
 OPR |-| RET| return to the upper level, use current level's first three value to change pc, data stack, base register.
 OPR | -|POP| pop the data stack, store the value in `reg` register
 OPR|-|PUSH| push `reg` to stack top
-OPR|n|BACK|  rewind stk.top backward n steps
 OPR|-|operator type| variout operation on value
 
 # Design

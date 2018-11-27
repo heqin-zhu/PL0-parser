@@ -1,5 +1,5 @@
 func outer(a,b)
-    var c;
+    var c=1;
     func inner(a,b) print('inner a,b,c:',a,b,c);
     begin
         c:=2;

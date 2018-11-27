@@ -4,9 +4,8 @@ begin
     return fib(n-1)+fib(n-2);
 end ; 
 
-var n;
+var n=1;
 begin
-    n :=1; 
     while n<15 do
     begin
         print('The ',n,'th fib item is:',fib(n));

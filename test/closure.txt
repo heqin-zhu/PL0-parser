@@ -1,0 +1,13 @@
+var a =1;
+func foo(a)
+    print("[in function foo ] a:",a);
+func bar(a)
+    begin
+    print("[in function bar ] a:",a); 
+    foo(4);
+    end; 
+begin
+    print("[in function main] a:",a);
+    foo(2);
+    bar(3)
+end.
