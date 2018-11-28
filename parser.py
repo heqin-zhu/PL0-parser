@@ -97,7 +97,7 @@ class instruction:
     def __str__(self):
         s = self.addr
         if type(self.addr)==str:
-            s = '"'+self.addr+'"'
+            s =repr(self.addr)
         return '({}, {}, {})'.format(self.name.ljust(4),self.levelDiff,s)
 class closure:
     '''environment for every function, including a dict of symbols and pointing to outer environment'''
@@ -154,6 +154,13 @@ class parser(object):
         self.ip+=1
         return self.ip-1
     def errorInfo(self):
+        '''when parsing codes and encountering error, 
+            print whole line in which this error is
+            and print error information
+        '''
+        def tkstr(tk):
+            if tk.type=='STR':return repr(tk.value)
+            return str(tk.value)
         tk = self.tokens[self.pointer]
         a=b = self.pointer
         lineno = tk.lineNum
@@ -162,10 +169,10 @@ class parser(object):
             a -=1
         while b<n and self.tokens[b].lineNum == lineno:
             b +=1
-        s1 = ' '.join([str(t.value) for t in self.tokens[a+1:self.pointer]])
-        s2 = ' '.join([str(t.value) for t in self.tokens[self.pointer:b]])
+        s1 = ' '.join([tkstr(t) for t in self.tokens[a+1:self.pointer]])
+        s2 = ' '.join([tkstr(t) for t in self.tokens[self.pointer:b]])
         print('line {}: {} {}'.format(lineno,s1,s2))
-        print(' '*(len(s1)+8+len(str(lineno)))+'^'*len(str(tk.value)))
+        print(' '*(len(s1)+8+len(str(lineno)))+'^'*len(tk.value))
         return tk
     def errorIns(self,ins,pc):
         print('[Error]: Unknown instruction {}: {}  '.format(pc,ins))
@@ -254,7 +261,7 @@ class PL0(parser):
         self.binaryOPR.update(self.arithmeticOPR)
         self.binaryOPR.update(self.bitOPR)
         del self.binaryOPR['BITNOT']
-        self.unaryOPR = {'NEG':neg,'NOT':not_,'BITNOT':lambda x:~round(x),'FAC':lambda x:reduce(mul,range(1,round(x)+1),1),'ODD':lambda x:round(x)%2==1, 'RND':lambda x:randint(0,x)}#abs
+        self.unaryOPR = {'NEG':neg,'NOT':not_,'BITNOT':lambda x:~round(x),'FAC':lambda x:reduce(mul,range(1,round(x)+1),1),'ODD':lambda x:round(x)%2==1, 'RND':lambda x:randint(0,x),'INT':round}#abs
 
     def program(self):
         self.enableJit = False
@@ -355,6 +362,26 @@ class PL0(parser):
             for i in ['BREAK','CONTINUE','RETURN']:
                 ret[i] = ret[i].union(dic[i])
         return ret
+    def formatStr(self,s):
+        n = len(s)
+        i = 0
+        segs = []
+        last = 0
+        while i<n:
+            if s[i]=='%' and i+1<n:
+                if i>0 and s[i-1]=='\\':
+                    segs.append(s[last:i-1])
+                    last=i
+                elif s[i+1] in 'df':
+                    segs.append(s[last:i])
+                    segs.append('%{}'.format(s[i+1]))
+                    last = i+2
+                    i +=1
+            i+=1
+        if last<n:
+            segs.append(s[last:])
+        return segs
+
     def sentence(self,outerLoop=None):
         ret ={'BREAK':set(),'CONTINUE':set(),'RETURN':set()}
         if self.isType('BEGIN'):
@@ -363,8 +390,25 @@ class PL0(parser):
             self.match(END)
         elif self.isType('PRINT'):
             self.match()
-            n = self.real_arg_list()
-            self.genIns('INT',2,n)
+            self.match(LEFT)
+            if not self.isType('RIGHT'):
+                self.wantType('STR')
+                s  = self.match().value
+            else:s=''
+            segs= self.formatStr(s)
+            n = 0
+            for seg in segs:
+                if seg in ['%d','%f']:
+                    self.match(COMMA)
+                    self.sentenceValue()
+                    if seg=='%d': self.genIns('OPR',1,'INT')#type convert
+                    n +=1
+                else:
+                    for i in seg: self.genIns('LIT',0,i)
+            self.genIns('LIT',0,'\n')
+            unitNum = sum(len(i) for i in segs) -n +1
+            self.genIns('INT',2,unitNum)
+            self.match(RIGHT)
         elif self.isType('BREAK'):
             if outerLoop is None: self.errorLoop('break')
             self.match()
@@ -545,9 +589,9 @@ class PL0(parser):
         if self.isType('NUM'):
             val = float(self.match().value)
             self.genIns('LIT',0,val)
-        elif self.isType('STR'):
-            val = self.match().value
-            self.genIns('LIT',0.,val)
+        #elif self.isType('STR'):
+        #    val = self.match().value
+        #    self.genIns('LIT',0.,val)
         elif self.isType('LEFT'):
             self.match()
             self.sentenceValue()
@@ -652,8 +696,7 @@ class PL0(parser):
                 elif ins.levelDiff==2: #print 
                     stk.top = stk.top-ins.addr+1
                     for i in range(ins.addr):
-                        print(stk[stk.top+i],end=' ')
-                    print()
+                        print(stk[stk.top+i],end='')
                     stk.top-=1
                 else:self.errorIns(ins,pc-1)
             elif ins.name=='LIT':
@@ -696,7 +739,7 @@ class PL0(parser):
                     else:self.errorIns(ins,pc-1)
             else:
                 self.errorIns(ins,pc-1)
-            if SHOWSTACK: print(ins,stk[:stk.top+1])
+            if SHOWSTACK: print(str(pc).ljust(5),ins,stk[:stk.top+1])
             if pc==0:break
         return stk[3:stk.top+1]
 
@@ -708,9 +751,10 @@ def getCode(inStream):
         if line=='':
             eof = True
             break
+        if line.rstrip(' \n\r\t')=='': continue
         lines.append(line)
         p = line.find('//')
-        if p==-1 and line.rstrip('\n\t\r ').endswith('.'):break
+        if p==-1 and line.rstrip('\n\r \t').endswith('.'):break
     if eof and len(lines)==0: raise EOFError
     return lines,inStream
 
@@ -731,11 +775,12 @@ def testFromFile(f):
         try:
             while 1:
                 lines,fp = getCode(fp)
-                if len(lines)==1: print('>>',lines[0].strip('\n'))
+                if len(lines)==1: print('>>',lines[0].strip('\n\r'))
                 else:
-                    print('>> File: "{}"'.format(f))
+                    print('>> codes: ')
                     for i,l in enumerate(lines):
                         print(str(i+1).ljust(5),l,end='')
+                    print()
                 tk =[i for i in  gen_token(''.join(lines))]
                 if tk ==[]:continue
                 res = cal.parse(tk)

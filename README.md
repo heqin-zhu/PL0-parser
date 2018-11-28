@@ -22,24 +22,21 @@ Run `python parse.py` and enter a REPL state, you can type and run sentences and
 # Examples
 Note that when in REPL, every sentence or expresion or block ends with '.'. But in program codes, only the whole program ends with a dot.
 ##  interactive-expression
-
-run command `python parser.py` to enter repl.
-
 Therer are some expressions and sentence in file expr.txt, now test it.
 `python parser.py -f test/expr.txt`
 
 ```c
->> File: "test/expr.txt"
-1
-2     // expression
-3     var a=3,b=2,c;.
+>> codes:
+1     // expression
+2     var a=3,b=2,c;.
+
 >>  c:=a+1.
 >> begin c; c+1!=1 ; c+1=5 end.
 result: 4.0; True; True;
->> for(;b>=0;b:=b-1) print('random num below 100:',random(100)) .
-random num below 100: 73
-random num below 100: 16
-random num below 100: 51
+>> for(;b>=0;b:=b-1) print('random(100): %d',random(100)) .
+random(100): 14
+random(100): 60
+random(100): 58
 >> begin ++1--1; 1<<2+3%2; 2&1 end.
 result: 2.0; 8; 0;
 >>   -1+2*3/%2.
@@ -48,47 +45,61 @@ result: 2.0;
 line 1: ( 1 + 2 .
                 ^
 [Error]: Expected ")", got "."
->> print('const e:',E,'    fac of fac 4:',4!!).
-const e: 2.718281828459045     fac of fac 4: 620448401733239439360000
-```
+>> 4!!.
+result: 620448401733239439360000;
+>> codes:
+1     if   0 then 1
+2     elif 1>2 then 2
+3     elif false then 3
+4     else 4.
 
+result: 4.0;
+```
 ## fibonacci
-run
-`python parser.py  -f test/fibonacci.txt`
+Run `python parser.py  -f test/fibonacci.txt`
 
 ```c
->> File: "test/fibnaci.txt"
+>> codes:
 1     func fib(n)
 2     begin
 3         if n=1 || n=2 then return 1;
 4         return fib(n-1)+fib(n-2);
 5     end ;
-6
-7     var n;
-8     begin
-9         n :=1;
-10        while n<15 do
-11        begin
-12            print('The ',n,'th fib item is:',fib(n));
-13            n :=n+1;
-14        end;
-15
-16    end
-17    .
-The  1.0 th fib item is: 1.0
-The  2.0 th fib item is: 1.0
-The  3.0 th fib item is: 2.0
-The  4.0 th fib item is: 3.0
-The  5.0 th fib item is: 5.0
-The  6.0 th fib item is: 8.0
-The  7.0 th fib item is: 13.0
-The  8.0 th fib item is: 21.0
-The  9.0 th fib item is: 34.0
-The  10.0 th fib item is: 55.0
-The  11.0 th fib item is: 89.0
-The  12.0 th fib item is: 144.0
-The  13.0 th fib item is: 233.0
-The  14.0 th fib item is: 377.0
+6     var n=1;
+7     begin
+8         while n<15 do
+9         begin
+10            print('fib[%d]=%d',n,fib(n));
+11            n :=n+1;
+12        end;
+13    end
+14    .
+
+fib[1]=1
+fib[2]=1
+fib[3]=2
+fib[4]=3
+fib[5]=5
+fib[6]=8
+fib[7]=13
+fib[8]=21
+fib[9]=34
+fib[10]=55
+fib[11]=89
+fib[12]=144
+fib[13]=233
+fib[14]=377
+```
+
+Try following command to explore more examples.
+```shell
+python parser.py -f test/factorial.txt
+python parser.py -f test/closure.txt
+python parser.py -f test/closure.txt -i
+python parser.py -f test/closure.txt -t
+python parser.py -f test/closure.txt -s
+python parser.py -f test/closure.txt -istv
+python parser.py  # enter interactive repl
 ```
 # Description
 ## ident type
@@ -215,8 +226,8 @@ Though we can't write a production with infinite loops, we can write it in code 
 ```python
 match_level4():
     result = match(item)
-    while if lookAhead  matches item:
-        match(!)
+    while lookAhead  matches item:
+        match("!")
         result = factorial(item)
     return result
 ```
@@ -239,8 +250,6 @@ And the other places in one level contains local varibles and real time data for
 ![](src/data_stack.jpg)
 
 Each time we call a function, the level increases 1. Also, the level decreases 1 when we return from a function.
-
-
 ## instruction
 Every instruction consists of three parts. The first is the name of the instruction. Generally, the second is the level diifference of a identifier(if it has). And the third part is the address.
 
@@ -330,6 +339,31 @@ curClosure = function.closure
 call function
 curClosure = saved
 ```
+## builtin function--print
+This function is just like function `printf` in clang.
+Call it in the following format:
+`print(FORMAT[,arg1,arg2...])`
+The format string supports two kinds of format currently:
+* `%d`: integer
+* `%f`: float
+
+If you want to print raw `%d`, not formatting. You can add a back slash `  ` in front of `%`. (So it's with `%f`...)
+
+For example:
+```python
+>> print('a=%d, % \%d',1)
+a=1, % %d
+```
+
+To implement this builtin function, we should firstly parse the formatting str. I parse the format-str and generate segs seperated by %d or %f.
+For instance, `'fib[%d]=%d'` generates segs `['fib[','%d',']=','%d']`. 
+For every seg, if it's string, generate instruction `('LIT',0,c)`, c is one chracter that consist of seg.
+If it's `%d` or `%f`, we should first match comma, and then parse the followwing value and generate instructions. When in runtime, after executing there instructions, we will get a value(only take place one data-stack unit).
+
+After handling all segs, we generate an instruction `('INT',2,n)`, which represents printing the top n units of data stack, and stk.top = stk.top-n.
+N can be calculated by suming all lengths of str-seg, and num of format-seg.
+
+
 # To do
 - [ ] array
 - [ ] different value pass

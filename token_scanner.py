@@ -71,7 +71,8 @@ class Token:
     def __eq__(self,tk):
         return self.type==tk.type and self.value==tk.value
     def __repr__(self):
-        return '({},{},{})'.format(self.type,self.value,self.lineNum)
+        s = self.value if self.type!='STR' else '"{}"'.format(repr(self.value))
+        return '({},{},{})'.format(self.type,s,self.lineNum)
 
 def gen_token(text):
     li = text .split('\n')
