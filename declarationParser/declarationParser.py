@@ -58,7 +58,7 @@ class parser(object):
 
 
 
-class PL0(parser):
+class declarationParser(parser):
     type_size = {'INT':1,'POINTER':1,'VOID':1}
     def statement(self):
         '''non-terminate-symbol: translation_unit'''
@@ -193,20 +193,20 @@ class PL0(parser):
             return 'Varible   {var}, size: {size}, type: {s}'.format(var = lst[0][1],s = varType,size = size)
 
 def testFromStdIO():
-    pl = PL0()
+    dp = declarationParser()
     while 1:
         s = input('>> ')
         tk = gen_token(s)
-        pl.parse(tk)
+        dp.parse(tk)
 def testFromFile(f= 'test.txt'):
-    pl = PL0()
+    dp = declarationParser()
     with open(f,'r') as fp:
         for line in fp:
             line = line.strip(' \n')
             if line.startswith('//') or line=='' :continue
             print('>>',line)
             tk = gen_token(line)
-            pl.parse(tk)
+            dp.parse(tk)
             print()
 
 if __name__=='__main__':

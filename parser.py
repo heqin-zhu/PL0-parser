@@ -226,7 +226,7 @@ class parser(object):
         return any([self.isType(i) for i in lst])
     def wantType(self,s):
         if not self.isType(s): self.errorExpect(s)
-    def fillBack(self,ip,addr,levelDiff=None):
+    def backpatching(self,ip,addr,levelDiff=None):
         self.codes[ip].addr= addr
         if levelDiff is not None:self.codes[ip].levelDiff=levelDiff
     def program(self):
@@ -261,8 +261,8 @@ class PL0(parser):
         self.genIns('INT',0,None)
         self.genIns('JMP',0,None)
         ip= self.body()
-        self.fillBack(0,self.curClosure.varNum+3)
-        self.fillBack(1,ip)
+        self.backpatching(0,self.curClosure.varNum+3)
+        self.backpatching(1,ip)
         self.match(PERIOD)
         self.genIns('OPR',0,'RET')
     def body(self):
@@ -304,9 +304,9 @@ class PL0(parser):
                 span1 = nvar -narg
                 span2 = 3+nvar
                 for i ,ip in enumerate(ips):
-                    self.fillBack(ip,span1+i,span2+i)
+                    self.backpatching(ip,span1+i,span2+i)
                 self.match(SEMICOLON)
-                self.fillBack(beginIp,nvar+3)
+                self.backpatching(beginIp,nvar+3)
                 self.level -=1
                 self.genIns('OPR',0,'RET')
             else:break
@@ -321,7 +321,7 @@ class PL0(parser):
                 self.genIns('STO',0,sym.addr)
         if not  self.isType('PERIOD'):
             for ip in self.sentence()['RETURN']:
-                self.fillBack(ip,self.ip)
+                self.backpatching(ip,self.ip)
         return ret
     def arg_list(self):
         self.match(LEFT)
@@ -384,7 +384,7 @@ class PL0(parser):
                 self.match()
                 ip = self.genIns('JMP',0,None)
                 jmpIps.append(ip)
-                self.fillBack(jpcIp,self.ip)
+                self.backpatching(jpcIp,self.ip)
                 self.sentenceValue()
                 jpcIp = self.genIns('JPC',0,None)
                 self.match(THEN)
@@ -396,14 +396,14 @@ class PL0(parser):
                 self.match()
                 ip = self.genIns('JMP',0,None)
                 jmpIps.append(ip)
-                self.fillBack(jpcIp,self.ip)
+                self.backpatching(jpcIp,self.ip)
                 dic=self.sentence(outerLoop)
                 for i in ['BREAK','CONTINUE','RETURN']:
                     ret[i] = ret[i].union(dic[i])
             else:
-                self.fillBack(jpcIp,self.ip)
+                self.backpatching(jpcIp,self.ip)
             for ip in jmpIps:
-                self.fillBack(ip,self.ip)
+                self.backpatching(ip,self.ip)
         elif self.isType('WHILE') or self.isType('FOR'):
             tp = self.match()
             beginIp = jpcIp =None
@@ -427,11 +427,11 @@ class PL0(parser):
                 self.match(RIGHT)
             ret  = self.sentence(1)
             self.genIns('JMP',0,beginIp)
-            self.fillBack(jpcIp,self.ip)
+            self.backpatching(jpcIp,self.ip)
             for jmpip in ret['BREAK']:
-                self.fillBack(jmpip,self.ip)
+                self.backpatching(jmpip,self.ip)
             for jmpip in ret['CONTINUE']:
-                self.fillBack(jmpip,beginIp)
+                self.backpatching(jmpip,beginIp)
         elif self.isType('RETURN'): # retrun sentence
             self.match()
             self.sentenceValue()
@@ -492,9 +492,9 @@ class PL0(parser):
             self.sentenceValue()
             ip2 = self.genIns('JMP',0,None)
             self.match(COLON)
-            self.fillBack(ip,self.ip)
+            self.backpatching(ip,self.ip)
             self.sentenceValue()
-            self.fillBack(ip2,self.ip)
+            self.backpatching(ip2,self.ip)
     def condition_and(self):
         self.condition_not()
         while self.isType('AND'):
@@ -577,11 +577,16 @@ class PL0(parser):
                 self.funcall()
             else:
                 name = self.match().value
-                sym = self.getSymbol(name)
-                if sym.type=='CONST':
-                    self.genIns('LIT',0,sym.value)
+                if name=='true':
+                    self.genIns('LIT',0,True)
+                elif name=='false':
+                    self.genIns('LIT',0,False)
                 else:
-                    self.genIns('LOD',abs(self.level-sym.level),sym.addr)
+                    sym = self.getSymbol(name)
+                    if sym.type=='CONST':
+                        self.genIns('LIT',0,sym.value)
+                    else:
+                        self.genIns('LOD',abs(self.level-sym.level),sym.addr)
         else:
             self.errorExpect('a value')
     def level1(self):

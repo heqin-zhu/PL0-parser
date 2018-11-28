@@ -170,7 +170,7 @@ level1  = level2 { ( "+" | "-" ) level2 }
 level2 = level3 { "*" | "/" | "/%" | "%" ) level3 }
 level3 = level4 {"^" level4}
 level4 = item {"!"}          (*  factorial *)
-item =  number  |ident { "(" real_arg_list ")" }| "(" sentenceValue" )" | ("+" | "-" | "~" ) item
+item =  number|"true"|"false" | ident { "(" real_arg_list ")" }| "(" sentenceValue" )" | ("+" | "-" | "~" ) item
 ```
 ## syntax 
 Writet down syntax, then convert left recursion to right recursion.
@@ -303,8 +303,8 @@ I use a extra register `reg` to achive this. Before we return,
 
 Now the return value has be passed from level n+1 to level n
 
-## instruction fillback
-Taking `while` block as an example, Note that we don't know the `JPC` instruction's target addr until we finish analysing the whole block.The Solution is that after we analyse while condition, we generate an instruction with no target address, just take a place. We note down this instruction's address. As soon as we finish analysing the whole  `while` block, the instruction pointer, namely `ip`, pointing to the target address of `JPC`. Then we fill back the `JPC` instruction with the target address along to ip.
+## instruction backpatching
+Taking `while` block as an example, Note that we don't know the `JPC` instruction's target addr until we finish analysing the whole block.The Solution is that after we analyse while condition, we generate an instruction with no target address, just take a place. We note down this instruction's address. As soon as we finish analysing the whole  `while` block, the instruction pointer, namely `ip`, pointing to the target address of `JPC`. Then we backpatch the `JPC` instruction with the target address along to ip.
 
 ## symbol table
 When analysing and translating, we want to get the symbol which including level, address,(value for constant) according to its name. The following shows how to achive it elegantly
@@ -336,3 +336,4 @@ curClosure = saved
 - [ ] do while, switch
 - [ ] function pass
 - [ ] type 
+- [ ] struct
