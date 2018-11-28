@@ -91,7 +91,7 @@ fib[13]=233
 fib[14]=377
 ```
 
-Try following command to explore more examples.
+Try the following commands to explore more examples.
 ```shell
 python parser.py -f test/factorial.txt
 python parser.py -f test/closure.txt
@@ -141,7 +141,7 @@ python parser.py  # enter interactive repl
 * return
 
 ## builtin function
-* print(a,b,c...)
+* print(formatStr,arg1,...)
 * random(), random(n)
 
 # Grammar
@@ -160,7 +160,7 @@ sentence = [ ident ":=" { ident ":=" } sentenceValue
                 |  "break"
                 |  "continue"
                 |  ["return"] sentenceValue
-                |  "print" "(" real_arg_list ")" ]
+                |  "print" "(" str,real_arg_list ")" ]
 
 sentenceValue =   condition
 
@@ -311,6 +311,7 @@ I use a extra register `reg` to achive this. Before we return,
 * `OPR,0,'PUSH'` will push reg value to stack top
 
 Now the return value has be passed from level n+1 to level n
+![](src/return_value.jpg)
 
 ## instruction backpatching
 Taking `while` block as an example, Note that we don't know the `JPC` instruction's target addr until we finish analysing the whole block.The Solution is that after we analyse while condition, we generate an instruction with no target address, just take a place. We note down this instruction's address. As soon as we finish analysing the whole  `while` block, the instruction pointer, namely `ip`, pointing to the target address of `JPC`. Then we backpatch the `JPC` instruction with the target address along to ip.
