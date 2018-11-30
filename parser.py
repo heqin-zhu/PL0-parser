@@ -36,6 +36,7 @@ SHOWVAR = args.varible
 SHOWTOKEN = args.token
 
 
+WHILE = Token('NAME','while')
 THEN = Token('NAME','then')
 ELSE = Token('NAME','else')
 DO = Token('NAME','do')
@@ -98,7 +99,7 @@ class instruction:
         s = self.addr
         if type(self.addr)==str:
             s =repr(self.addr)
-        return '({}, {}, {})'.format(self.name.ljust(4),self.levelDiff,s)
+        return '{}   {}   {}'.format(self.name.ljust(4),self.levelDiff,s)
 class closure:
     '''environment for every function, including a dict of symbols and pointing to outer environment'''
     def __init__(self,items=None,outer=None):
@@ -203,7 +204,7 @@ class parser(object):
         try:
             self.program()
             if SHOWINS:
-                print('Instructions:')
+                print('     ins   i   a')
                 for i,ins in enumerate(self.codes):print(str(i).ljust(4),ins)
             if self.pointer != len(self.tokens):
                 raise Exception ('[Error]: invalid syntax')
@@ -247,7 +248,7 @@ class PL0(parser):
     def __init__(self,tokens=None,syms=None,codes=None,level=0):
         '''init pc, closure, reserved keywords, operators'''
         super().__init__()
-        self.reserved={'FUNC','PRINT','RETURN','BEGIN','END','IF','THEN','FOR','ELIF','ELSE','WHILE','DO','BREAK','CONTINUE','VAR','CONST','ODD','RANDOM'}
+        self.reserved={'FUNC','PRINT','RETURN','BEGIN','END','IF','THEN','FOR','ELIF','ELSE','WHILE','DO','BREAK','CONTINUE','VAR','CONST','ODD','RANDOM','SWITCH','CASE','DEFAULT'}
         self.bodyFirst= self.reserved.copy()
         self.bodyFirst.remove('ODD')
         self.relationOPR= {'EQ':eq,'NEQ':ne,'GT':gt,'LT':lt,'GE':ge,'LE':le} # odd
@@ -271,7 +272,7 @@ class PL0(parser):
         self.backpatching(0,self.curClosure.varNum+3)
         self.backpatching(1,ip)
         self.match(PERIOD)
-        self.genIns('OPR',0,'RET')
+        self.genIns('RET',0,0)
     def body(self):
         while 1:
             if self.isType('CONST') or self.isType('VAR'):
@@ -282,8 +283,13 @@ class PL0(parser):
                     val = None
                     if self.isType('EQ'):
                         self.match(EQ)
+                        minus = False
+                        if self.isType('SUB'):
+                            self.match()
+                            minus=True
                         self.wantType('NUM')
                         val = float(self.match().value)
+                        if minus: val = -val
                     self.addSymbol(name,tp,val)
                     if self.isType('SEMICOLON'):
                         self.match()
@@ -315,7 +321,7 @@ class PL0(parser):
                 self.match(SEMICOLON)
                 self.backpatching(beginIp,nvar+3)
                 self.level -=1
-                self.genIns('OPR',0,'RET')
+                self.genIns('RET',0,0)
             else:break
         ret = self.ip
         if SHOWVAR:
@@ -448,6 +454,44 @@ class PL0(parser):
                 self.backpatching(jpcIp,self.ip)
             for ip in jmpIps:
                 self.backpatching(ip,self.ip)
+        elif self.isType('SWITCH'):
+            self.match()
+            self.sentenceValue()
+            self.genIns('POP',0,1)
+            while self.isType('CASE'):
+                self.match()
+                self.genIns('PUSH',0,1)
+                self.sentenceValue()
+                self.genIns('OPR',2,'EQ')
+                if self.isType('COMMA'):
+                    self.match()
+                    self.sentenceValue()
+                    self.genIns('PUSH',0,1)
+                    self.genIns('OPR',2,'EQ')
+                    self.genIns('OPR',2,'OR')
+                jpcIp = self.genIns('JPC',0,None)
+                self.match(COLON)
+                if not self.isType('CASE'):
+                    dic = self.sentence()
+                self.backpatching(jpcIp,self.ip)
+            #if self.isType('DEFAULT'):
+            #    self.match()
+            #    self.match(COLON)
+            #    self.sentence()
+        elif self.isType('DO'):
+            self.match()
+            jpcIp =None
+            beginIp = self.ip
+            ret  = self.sentence(1)
+            self.match(WHILE)
+            self.sentenceValue()
+            jpcIp = self.genIns('JPC',0,None)
+            self.genIns('JMP',0,beginIp)
+            self.backpatching(jpcIp,self.ip)
+            for jmpip in ret['BREAK']:
+                self.backpatching(jmpip,self.ip)
+            for jmpip in ret['CONTINUE']:
+                self.backpatching(jmpip,beginIp)
         elif self.isType('WHILE') or self.isType('FOR'):
             tp = self.match()
             beginIp = jpcIp =None
@@ -479,7 +523,7 @@ class PL0(parser):
         elif self.isType('RETURN'): # retrun sentence
             self.match()
             self.sentenceValue()
-            self.genIns('OPR',0,'POP')
+            self.genIns('POP',0,0)
             ret['RETURN'].add(self.genIns('JMP',0,None))
         elif self.isAnyType(['SEMICOLON','END','ELSE']):pass # allow blank sentence: namely   ; ;; 
         elif self.isAssignment() : # this must be the last to be checked in sentences
@@ -498,7 +542,7 @@ class PL0(parser):
             self.errorArg(sym.argNum,n2)
         self.genIns('CAL',abs(self.level-sym.level),sym.value)
         self.genIns('INT',1,n2)
-        self.genIns('OPR',0,'PUSH')
+        self.genIns('PUSH',0,0)
     def sentenceValue(self):
         self.condition()
     def isAssignment(self):
@@ -686,7 +730,7 @@ class PL0(parser):
         stk = stack([0,0,0])
         stk.top=2
         b = pc=0
-        reg = None
+        regs=[None,None]
         while 1:
             ins = self.codes[pc]
             pc+=1
@@ -727,16 +771,15 @@ class PL0(parser):
                     arg2 = stk.pop()
                     arg1 = stk[stk.top]
                     stk[stk.top] = self.binaryOPR[ins.addr](arg1,arg2)
-                if ins.levelDiff==0:
-                    if ins.addr =='RET':
-                        pc = stk[b+2]
-                        if pc!=0: stk.top=b-1
-                        b = stk[b+1]
-                    elif ins.addr=='POP':
-                        reg = stk.pop()
-                    elif ins.addr=='PUSH':
-                        stk.push(reg)
-                    else:self.errorIns(ins,pc-1)
+                else:self.errorIns(ins,pc-1)
+            elif ins.name=='RET':
+                pc = stk[b+2]
+                if pc!=0: stk.top=b-1
+                b = stk[b+1]
+            elif ins.name=='POP':
+                regs[ins.addr] = stk.pop()
+            elif ins.name=='PUSH':
+                stk.push(regs[ins.addr])
             else:
                 self.errorIns(ins,pc-1)
             if SHOWSTACK: print(str(pc).ljust(5),ins,stk[:stk.top+1])

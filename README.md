@@ -157,6 +157,8 @@ sentence = [ ident ":=" { ident ":=" } sentenceValue
                 |  "begin" sentence { ";" sentence}  "end"
                 |  "if" sentenceValue "then" sentence {"elif" sentence} ["else" sentence]
                 |  "while" sentenceValue "do" sentence
+                |  "do" sentence "while" sentenceValue 
+                |  "switch" sentenceValue {"case" sentenceValue {"," sentenceValue} ":" [setenceValue]}  (* ["default" ":" sentenceValue]   to do *)
                 |  "break"
                 |  "continue"
                 |  ["return"] sentenceValue
@@ -238,7 +240,7 @@ To simplify this problem, we will emulate this virtual machine and execute instr
 ## register
 This machine has three registers:
 * `b` is the base register that contains the base pointer to locate a varible in the data stack
-* `reg` is the return register that contains the  return value of latest function call 
+* `regs` are a series of registers. Currently the first one is used for returning value of latest function call, and the second one is used to store the `switch` value
 * `pc` is the pc register that points to the instruction 
 ## stack
 There are two stack in this virtual machine. 
@@ -265,9 +267,9 @@ CAL|levelDiff|addr|call a function
 JMP |-|addr|jmp to addr, namely set addr to pc
 JPC|-|addr| pop stack, if the value is not True, jmp addr
 MOV|n1|n2|  stk[top-n2] = stk[top-n1]
-OPR |-| RET| return to the upper level, use current level's first three value to change pc, data stack, base register.
-OPR | -|POP| pop the data stack, store the value in `reg` register
-OPR|-|PUSH| push `reg` to stack top
+RET|-|-| return to the upper level, use current level's first three value to change pc, data stack, base register.
+POP|-|-| pop the data stack, store the value in `reg` register
+PUSH|-|-| push `reg` to stack top
 OPR|-|operator type| variout operation on value
 
 # Design
@@ -278,6 +280,16 @@ Some keypoints is the control structures' instruction traslation.
 ## while/break
 ![](src/while_ins_stack.jpg)
 `continue`, `for`  can be translated in the same way.
+## switch 
+eg 
+```c
+switch n
+    case 1,2:print('1 or 2')
+    case 1+5:print('6')
+    case func_add(1,6):print('7')
+;
+```
+
 ## function arguments pass
 When analysing the function's defination, we can store the formal arguments as function's local varibles.
 As soon as we call this function, we should calculate the real arguments in the level upper the function, and then pass value to the function's formal varibles one by one.
@@ -368,7 +380,6 @@ N can be calculated by suming all lengths of str-seg, and num of format-seg.
 # To do
 - [ ] array
 - [ ] different value pass
-- [ ] do while, switch
 - [ ] function pass
 - [ ] type 
 - [ ] struct

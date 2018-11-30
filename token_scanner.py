@@ -96,6 +96,7 @@ def gen_token(text):
         scanner = master_pat.scanner(s)
         for m in iter(scanner.match,None):
             tok = Token(m.lastgroup,m.groupdict()[m.lastgroup],i+1)
+            if tok.value=='exit':exit()
             if tok.type!='WS':
                 yield tok
 if __name__ =='__main__':
