@@ -6,197 +6,138 @@
 # Blog: https://mbinary.coding.me
 # Github: https://github.com/mbinary
 # Created Time: 2018-09-17  22:19
-# Description: 
+# Description:
 #########################################################################
 '''
+import argparse
+from token_scanner import gen_token
 
-from math import e,pi,log
-from token_scanner import gen_token,Token
+argp = argparse.ArgumentParser()
 
-END = Token('END','NIL')
-LEFT = Token('LEFT','(')
-RIGHT = Token('RIGHT',')')
-L2 = Token('L2','[')
-R2 = Token('R2',']')
-COMMA = Token('COMMA',',')
-SEMICOLON= Token('SEMICOLON',';')
-VOID= Token('VOID','void')
-INT = Token('INT','int')
-POINTER = Token('POINTER','*')
-NUM =Token('NUM','0')
-NAME = Token('NAME','id')
-
+argp.add_argument('-c','--code',help="output generated code", action='store_true')
+args = argp.parse_args()
+CODE = args.code
 
 class parser(object):
     def __init__(self):
-        self.lookahead = None
         self.tokens =None
-        self.varibles={'ans':None,'e':e,'pi':pi}
-    def match(self,sym=None):
-        if sym is None or self.lookahead.type==sym.type:
-            try:
-                self.lookahead = self.peek
-                self.peek = next(self.tokens)
-            except StopIteration: self.peek = END
-        else:raise Exception('[parse error] Expect {}, got {}'.format(sym,self.lookahead))
+        self.n = 0
+        self.i= 0
+    def isType(self,s):
+        return self.i<self.n and self.tokens[self.i].type==s
+    def isEnd(self):
+        return self.i>=self.n
+    def match(self,tp=None):
+        cur = self.tokens[self.i]
+        #print(self.i,tp,cur)
+        if tp is None or cur.type==tp:
+            self.i+=1
+            return cur
+        raise Exception('[parse error] Expect {}, got {}'.format(tp,cur.type))
     def parse(self,tokens):
         self.tokens=tokens
-        self.lookahead = next(self.tokens)
-        self.peek = END
-        try: self.peek = next(self.tokens)
-        except:pass
+        self.i = 0
+        self.n = len(self.tokens)
         try:
-            ret = self.statement()
-            if self.lookahead == END:
-                self.varibles['ans'] = ret
-                return ret
-            else: print('[parse error] invalid statement')
+            self.statement()
+            if self.i<self.n:
+                print('[parse error] invalid statement')
         except Exception as e:
             print(e)
     def statement(self):
         pass
 
 
-
 class declarationParser(parser):
     type_size = {'INT':1,'POINTER':1,'VOID':1}
     def statement(self):
         '''non-terminate-symbol: translation_unit'''
-        while self.lookahead!=END:
-            self.declaration()
+        while self.i<self.n:
+            for i in self.declaration():
+                print(i)
     def declaration(self):
         symType = self.declaration_specifiers()
-        self.init_declarator_list(symType)
-        self.match(SEMICOLON)
+        li = self.init_declarator_list(symType)
+        self.match('SEMICOLON')
+        return li
     def declaration_specifiers(self):
         return self.type_specifier()
     def type_specifier(self):
-        sym = self.lookahead
-        if sym==VOID or sym==INT:
-            self.match()
-        else:self.match(INT)
-        return sym.type
+        return self.match().value
     def init_declarator_list(self,symType):
+        li = []
         while 1:
-            self.init_declarator(symType)
-            if self.lookahead==COMMA:
+            li.append(self.init_declarator(symType))
+            if  self.isType('COMMA'):
                 self.match()
             else:break
+        return li
     def init_declarator(self,symType):
-        lst = self.declarator()
-        lst.append(('type',symType))
-        #print(lst)
-        s = self.parseAllType(lst)
-        print(s)
-    def declarator(self):
-        np = 0
-        if self.lookahead ==POINTER:
-            np = self.pointer()
-        lst = self.direct_declarator()
-        return lst+[('pointer',np)]
-    def direct_declarator(self):
-        flags=[]
-        if self.lookahead.type=='NAME':
-            ident= ('id',self.lookahead.value)
-            flags=[ident]
+        return self.declarator(symType)
+    def declarator(self,symType):
+        np = self.pointer() # np>=0
+        tp = 'pointer(' *np + symType + ')'*np
+        return self.direct_declarator(tp)
+    def direct_declarator(self,tp):
+        args =''
+        inner = '$'
+        name = ''
+        if self.isType('NAME'):
+            name = self.match().value+'::'
+        elif self.isType('LEFT'): # (
             self.match()
-        elif self.lookahead == LEFT:
+            inner = self.declarator('$') #mark
+            self.match('RIGHT')
+        if self.isType('LEFT'):
             self.match()
-            flags= self.declarator()
-            self.match(RIGHT)
-        else:self.match(LEFT)
-        last=None
-        funcArg = None
-        funcRet = []
-        while 1:
-            if self.lookahead==LEFT:
-                if last =='arr':
-                    flags[0] = ('error','Array of Functions is not allowed')
-                last = 'func'
+            li = ['void']
+            if not self.isType('RIGHT'):
+                li = self.parameter_type_list()
+            self.match('RIGHT')
+            if self.isType('L2'):
+                raise Exception('[Error]: Array of Functions is not allowed')
+            args = ' X '.join(li)
+        elif self.isType('L2'):
+            li = []
+            while self.isType('L2'):
                 self.match()
-                if self.lookahead!=RIGHT:
-                    funcArg = self.parameter_type_list()
-                else: funcArg=[]
-                self.match(RIGHT)
-            elif self.lookahead==L2:
-                self.match()
-                s = self.lookahead.value
-                self.match(NUM)
-                tp = ('array',int(s))
-                if funcArg is None:  flags.append(tp)
-                else: funcRet.append(tp)
-                if last =='func':
-                    flags[0] = ('error','Array of Function can not be returned from functions')
-                last = 'arr'
-                self.match(R2)
-            else:break
-        if funcArg is not None: 
-            flags.append(('func',funcArg))
-            flags += funcRet
-        return flags
+                assert self.isType('NUM')
+                li.append(int(self.match().value))
+                self.match('R2')
+            if self.isType('LEFT'):
+                raise Exception('[Error]: Array of Function can not be returned from functions')
+            for i in reversed(li):
+                tp = 'array({},{})'.format(i,tp)
+        if args!='':
+            tp = 'function( {args} => {tp})'.format(args=args,tp =tp )
+        return name+inner.replace('$',tp)
+
     def pointer(self):
-        n = 1
-        self.match(POINTER)
-        while self.lookahead==POINTER:
+        n = 0
+        while self.isType('POINTER'):
             n+=1
-            self.match(POINTER)
+            self.match('POINTER')
         return n
     def parameter_type_list(self):
         return self.parameter_list()
     def parameter_list(self):
-        ret = []
+        li = []
         while 1:
-            lst,symType = self.parameter_declaration()
-            lst.append(('type',symType))
-            ret.append(lst)
-            if self.lookahead==COMMA:
+            argType = self.parameter_declaration()
+            li.append(argType)
+            if self.isType('COMMA'):
                 self.match()
             else:break
-        return ret
+        return li
     def parameter_declaration(self):
         symType = self.declaration_specifiers()
-        return self.declarator(),symType
-    def parseAllType(self,lst):
-        def parseType(segs):
-            ret = ''
-            for tup in segs[::-1]:
-                if tup[0]=='type':
-                    ret = tup[1]
-                elif tup[0]=='pointer' and tup[1]!=0:
-                    ret = 'pointer('*tup[1] + ret + ')'*tup[1]
-                elif tup[0] =='array':
-                    ret = 'array({n},{s})'.format(n = tup[1],s = ret)
-            size = 1
-            for seg in segs:
-                if seg[0]=='array':size*=seg[1]
-                else:
-                    if seg[0]=='pointer': size *= self.type_size['POINTER']
-                    else:
-                        print(seg)
-                        size *=self.type_size[seg[1].upper()]
-                    break
-            return ret,size
-
-        if lst[0][0]=='error':return 'Error: ' + lst[0][1]
-        elif lst[1][0] == 'func':
-            segs = []
-            for argSeg in lst[1][1]:
-                argType,size = parseType(argSeg[1:])
-                s = 'Parameter {arg}, size: {size}, type: {s}'.format(arg = argSeg[0][1],s = argType,size = size)
-                segs.append(s)
-            retType,size = parseType(lst[2:])
-            s = 'Function  {func}, return type: {s}'.format(func = lst[0][1],s = retType)
-            segs.append(s)
-            return '\n'.join(segs)
-        else:
-            varType, size = parseType(lst[1:])
-            return 'Varible   {var}, size: {size}, type: {s}'.format(var = lst[0][1],s = varType,size = size)
+        return self.declarator(symType)
 
 def testFromStdIO():
     dp = declarationParser()
     while 1:
         s = input('>> ')
-        tk = gen_token(s)
+        tk = [i for i in gen_token(s)]
         dp.parse(tk)
 def testFromFile(f= 'test.txt'):
     dp = declarationParser()
@@ -205,7 +146,7 @@ def testFromFile(f= 'test.txt'):
             line = line.strip(' \n')
             if line.startswith('//') or line=='' :continue
             print('>>',line)
-            tk = gen_token(line)
+            tk =[i for i in  gen_token(line)]
             dp.parse(tk)
             print()
 

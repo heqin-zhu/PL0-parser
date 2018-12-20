@@ -55,13 +55,15 @@ LEFT=r'(?P<LEFT>\()'
 RIGHT=r'(?P<RIGHT>\))'
 WS = r'(?P<WS>\s+)'
 
+
+COMMENT = r'(?P<COMMENT>//[^\r\n]*|/\*.*?\*/)'
   # note that lt,gt should be after le,ge and rshift, lshift
 li = [STR,NUM, AND,OR,BITAND,BITOR,BITNOT,RSHIFT,LSHIFT,
       EQ,NEQ,GE,LE,LT,GT,\
       SUB,MOD, ADD, MUL,INTDIV,DIV, POW,FAC,NOT,\
       COMMA,SEMICOLON,PERIOD, QUESTION,WS,LEFT,RIGHT,\
       ASSIGN,COLON,NAME] # COLON behind ASSIGN
-master_pat = re.compile('|'.join(li))
+master_pat = re.compile('|'.join(li),re.DOTALL)
 
 class Token:
     def __init__(self,tp,value,lineNum=None):
@@ -97,7 +99,7 @@ def gen_token(text):
         for m in iter(scanner.match,None):
             tok = Token(m.lastgroup,m.groupdict()[m.lastgroup],i+1)
             if tok.value=='exit':exit()
-            if tok.type!='WS':
+            if tok.type!='WS' and tok.type!='COMMENT':
                 yield tok
 if __name__ =='__main__':
     while 1:
