@@ -1,4 +1,15 @@
 # PL0-compiler
+<p align="center">
+
+    [![build](http://img.shields.io/travis/mbinary/PL0-compiler.svg]()
+    [![Stars](https://img.shields.io/github/stars/mbinary/PL0-compiler.svg?label=Stars&style=social)](https://github.com/mbinary/PL0-compiler/stargazers)
+    [![Forks](https://img.shields.io/github/forks/mbinary/PL0-compiler.svg?label=Fork&style=social)](https://github.com/mbinary/PL0-compiler/network/members)
+    [![repo-size](https://img.shields.io/github/repo-size/mbianry/PL0-compiler.svg)]()
+    <!--  [![License](https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png)](http://creativecommons.org/licenses/by-nc-sa/4.0/)  copy LICENCE -->
+    [![License](https://img.shields.io/badge/LICENSE-MIT-blue.svg)](LICENSE)
+    [![Platform](https://img.shields.io/badge/platform-linux-lightgrey.svg)]()
+    [![Language](https://img.shields.io/badge/language-python3.6-orange.svg)]()
+</p>
 > A compiler for c-like programming language **based on** PL0, which is a dynamic, strong typing language.
 
 See grammar [here](#grammar), [wikipedia-PL0](https://en.wikipedia.org/wiki/PL/0), and download [this pdf(zh)](src/编译原理和技术实践2017.pdf) for more details.
