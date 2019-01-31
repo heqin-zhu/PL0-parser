@@ -21,6 +21,8 @@ install: true
 # if one failed, the later will still be executed
 script: 
   - coverage run parser.py  < test/gcd.txt
+  - coverage run parser.py  < test/bug.txt
+  - coverage run parser.py  < test/fibnacci.txt
 
 after_success:
   - codecov #运行codecov
