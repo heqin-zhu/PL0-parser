@@ -20,7 +20,7 @@ install: true
 
 # if one failed, the later will still be executed
 script: 
-  - python test/test_token_scanner.py
+  - python test_token_scanner.py
 
 after_success:
   - codecov #运行codecov
