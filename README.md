@@ -1,9 +1,9 @@
 # PL0-compiler
 
-[![Build](https://travis-ci.org/mbinary/PL0-compiler.svg?branch=master)]()
 [![Stars](https://img.shields.io/github/stars/mbinary/PL0-compiler.svg?label=Stars&style=social)](https://github.com/mbinary/PL0-compiler/stargazers)
 [![Forks](https://img.shields.io/github/forks/mbinary/PL0-compiler.svg?label=Fork&style=social)](https://github.com/mbinary/PL0-compiler/network/members)
-[![repo-size](https://img.shields.io/github/repo-size/mbianry/PL0-compiler.svg)]()
+[![Build](https://travis-ci.org/mbinary/PL0-compiler.svg?branch=master)]()
+[![repo-size](https://img.shields.io/github/repo-size/mbinary/PL0-compiler.svg)]()
 <!--  [![License](https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png)](http://creativecommons.org/licenses/by-nc-sa/4.0/)  copy LICENCE -->
 [![License](https://img.shields.io/badge/LICENSE-MIT-blue.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-linux-lightgrey.svg)]()
