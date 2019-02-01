@@ -2,13 +2,13 @@
 
 [![Stars](https://img.shields.io/github/stars/mbinary/PL0-compiler.svg?label=Stars&style=social)](https://github.com/mbinary/PL0-compiler/stargazers)
 [![Forks](https://img.shields.io/github/forks/mbinary/PL0-compiler.svg?label=Fork&style=social)](https://github.com/mbinary/PL0-compiler/network/members)
-[![Build](https://travis-ci.org/mbinary/PL0-compiler.svg?branch=master)]()
-[![repo-size](https://img.shields.io/github/repo-size/mbinary/PL0-compiler.svg)]()
+[![Build](https://travis-ci.org/mbinary/PL0-compiler.svg?branch=master)](https://travis-ci.org/mbinary/PL0-compiler?branch=master)
+[![repo-size](https://img.shields.io/github/repo-size/mbinary/PL0-compiler.svg)](.)
 <!--  [![License](https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png)](http://creativecommons.org/licenses/by-nc-sa/4.0/)  copy LICENCE -->
 [![License](https://img.shields.io/badge/LICENSE-MIT-blue.svg)](LICENSE)
-[![Platform](https://img.shields.io/badge/platform-linux-lightgrey.svg)]()
-[![Language](https://img.shields.io/badge/language-python3.6-orange.svg)]()
+[![Platform](https://img.shields.io/badge/platform-linux-lightgrey.svg)](.)
 [![codecov](https://codecov.io/gh/mbinary/PL0-compiler/branch/master/graph/badge.svg)](https://codecov.io/gh/mbinary/PL0-compiler)
+[![codebeat badge](https://codebeat.co/badges/a7af5445-6761-4d2f-b943-c3cb21dcb438)](https://codebeat.co/projects/github-com-mbinary-pl0-compiler-master)
 
 
 > A compiler for c-like programming language **based on** PL0, which is a dynamic, strong typing language.
