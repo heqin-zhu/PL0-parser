@@ -1,4 +1,5 @@
-# PL0-compiler
+<img align = "center" src="images/logo.png">
+
 
 [![Stars](https://img.shields.io/github/stars/mbinary/PL0-compiler.svg?label=Stars&style=social)](https://github.com/mbinary/PL0-compiler/stargazers)
 [![Forks](https://img.shields.io/github/forks/mbinary/PL0-compiler.svg?label=Fork&style=social)](https://github.com/mbinary/PL0-compiler/network/members)
@@ -7,13 +8,12 @@
 <!--  [![License](https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png)](http://creativecommons.org/licenses/by-nc-sa/4.0/)  copy LICENCE -->
 [![License](https://img.shields.io/badge/LICENSE-MIT-blue.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-linux-lightgrey.svg)](.)
-[![codecov](https://codecov.io/gh/mbinary/PL0-compiler/branch/master/graph/badge.svg)](https://codecov.io/gh/mbinary/PL0-compiler)
 [![codebeat badge](https://codebeat.co/badges/a7af5445-6761-4d2f-b943-c3cb21dcb438)](https://codebeat.co/projects/github-com-mbinary-pl0-compiler-master)
 
 
 > A compiler for c-like programming language **based on** PL0, which is a dynamic, strong typing language.
 
-See grammar [here](#grammar), [wikipedia-PL0](https://en.wikipedia.org/wiki/PL/0), and download [this pdf(zh)](src/编译原理和技术实践2017.pdf) for more details.
+See grammar [here](#grammar), [wikipedia-PL0](https://en.wikipedia.org/wiki/PL/0), and download [this pdf(zh)](images/编译原理和技术实践2017.pdf) for more details.
 
 # QuickStart
 ```shell
@@ -261,7 +261,7 @@ The other is data stack. It dynamiclly changes when running the program.
 
 For each level, the first is the base address of this level. The second place is the static chain to visit the upper level's varibles. The third place contains the return address of the upper level.
 And the other places in one level contains local varibles and real time data for calculation.
-![](src/data_stack.jpg)
+![](images/data_stack.jpg)
 
 Each time we call a function, the level increases 1. Also, the level decreases 1 when we return from a function.
 ## instruction
@@ -288,9 +288,9 @@ OPR|-|operator type| variout operation on value
 We can generate instruction when analysing grammar. 
 Some keypoints is the control structures' instruction traslation.
 ## if elif else
-![](src/elseif_ins_stack.jpg)
+![](images/elseif_ins_stack.jpg)
 ## while/break
-![](src/while_ins_stack.jpg)
+![](images/while_ins_stack.jpg)
 `continue`, `for`  can be translated in the same way.
 ## switch 
 eg 
@@ -319,7 +319,7 @@ for i in [0,1..,n1-1]:
 ```
 The moment we returned level n, we should rewind top for n1 spaces, `OPR,n1,'BACK'` can make it.
 
-![](src/argument_pass.jpg)
+![](images/argument_pass.jpg)
 
 ## function return
 Also, mark function level as n+1, and outer(upper) is level n.
@@ -335,7 +335,7 @@ I use a extra register `reg` to achive this. Before we return,
 * `OPR,0,'PUSH'` will push reg value to stack top
 
 Now the return value has be passed from level n+1 to level n
-![](src/return_value.jpg)
+![](images/return_value.jpg)
 
 ## instruction backpatching
 Taking `while` block as an example, Note that we don't know the `JPC` instruction's target addr until we finish analysing the whole block.The Solution is that after we analyse while condition, we generate an instruction with no target address, just take a place. We note down this instruction's address. As soon as we finish analysing the whole  `while` block, the instruction pointer, namely `ip`, pointing to the target address of `JPC`. Then we backpatch the `JPC` instruction with the target address along to ip.

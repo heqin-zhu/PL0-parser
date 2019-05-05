@@ -96,9 +96,9 @@ OPR|-|operator type| variout operation on value
 We can generate instruction when analysing grammar. 
 Some keypoints is the control structures' instruction traslation.
 ## 5.1. if elif else
-![](../src/elseif_ins_stack.jpg)
+![](images/elseif_ins_stack.jpg)
 ## 5.2. while/break
-![](../src/while_ins_stack.jpg)
+![](images/while_ins_stack.jpg)
 `continue`, `for`  can be translated in the same way.
 ## 5.3. function arguments pass
 When analysing the function's defination, we can store the formal arguments as function's local varibles.
@@ -117,7 +117,7 @@ for i in [0,1..,n1-1]:
 ```
 The moment we returned level n, we should rewind top for n1 spaces, `OPR,n1,'BACK'` can make it.
 
-![](../src/argument_pass.jpg)
+![](images/argument_pass.jpg)
 
 ## 5.4. function return
 Also, mark function level as n+1, and outer(upper) is level n.
