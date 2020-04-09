@@ -8,7 +8,8 @@
 <!--  [![License](https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png)](http://creativecommons.org/licenses/by-nc-sa/4.0/)  copy LICENCE -->
 [![License](https://img.shields.io/badge/LICENSE-MIT-blue.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-linux-lightgrey.svg)](.)
-[![codebeat badge](https://codebeat.co/badges/a7af5445-6761-4d2f-b943-c3cb21dcb438)](https://codebeat.co/projects/github-com-mbinary-pl0-compiler-master)
+[![codebeat badge](https://codebeat.co/badges/b7f7b388-cfb3-4802-a83f-b292b21d6de3)](https://codebeat.co/projects/github-com-mbinary-pl0-compiler-master)
+
 
 
 > A compiler for c-like programming language **based on** PL0, which is a dynamic, strong typing language.
