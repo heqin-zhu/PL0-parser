@@ -3,7 +3,9 @@
 
 [![Stars](https://img.shields.io/github/stars/mbinary/PL0-compiler.svg?label=Stars&style=social)](https://github.com/mbinary/PL0-compiler/stargazers)
 [![Forks](https://img.shields.io/github/forks/mbinary/PL0-compiler.svg?label=Fork&style=social)](https://github.com/mbinary/PL0-compiler/network/members)
-[![Build](https://travis-ci.org/mbinary/PL0-compiler.svg?branch=master)](https://travis-ci.org/mbinary/PL0-compiler?branch=master)
+[![test](https://github.com/mbinary/PL0-parser/workflows/test/badge.svg)]()
+[![Coverage](https://codecov.io/gh/mbinary/PL0-parser/branch/master/graph/badge.svg)](https://codecov.io/github/mbinary/PL0-parser?branch=master)
+
 [![repo-size](https://img.shields.io/github/repo-size/mbinary/PL0-compiler.svg)](.)
 <!--  [![License](https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png)](http://creativecommons.org/licenses/by-nc-sa/4.0/)  copy LICENCE -->
 [![License](https://img.shields.io/badge/LICENSE-MIT-blue.svg)](LICENSE)
@@ -36,7 +38,7 @@ Run `python parse.py` and enter a REPL state, you can type and run sentences and
 Note that when in REPL, every sentence or expresion or block ends with '.'. But in program codes, only the whole program ends with a dot.
 ##  interactive-expression
 Therer are some expressions and sentence in file expr.txt, now test it.
-`python parser.py -f test/expr.txt`
+`python parser.py -f scripts/expr.txt`
 
 ```c
 >> codes:
@@ -69,7 +71,7 @@ result: 620448401733239439360000;
 result: 4.0;
 ```
 ## fibonacci
-Run `python parser.py  -f test/fibonacci.txt`
+Run `python parser.py  -f scripts/fibonacci.txt`
 
 ```c
 >> codes:
@@ -106,12 +108,12 @@ fib[14]=377
 
 Try the following commands to explore more examples.
 ```shell
-python parser.py -f test/factorial.txt
-python parser.py -f test/closure.txt
-python parser.py -f test/closure.txt -i
-python parser.py -f test/closure.txt -t
-python parser.py -f test/closure.txt -s
-python parser.py -f test/closure.txt -istv
+python parser.py -f scripts/factorial.txt
+python parser.py -f scripts/closure.txt
+python parser.py -f scripts/closure.txt -i
+python parser.py -f scripts/closure.txt -t
+python parser.py -f scripts/closure.txt -s
+python parser.py -f scripts/closure.txt -istv
 python parser.py  # enter interactive repl
 ```
 # Description
